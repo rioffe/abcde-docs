@@ -10,7 +10,7 @@
 | | Recommendation |
 |---|---|
 | **Instances** | **2 × EC2**: `t4g.small` for the website, `t4g.medium` for both scrapers |
-| **Database** | Keep Neon at first (M-01). Optionally move later to **1 × RDS PostgreSQL `db.t4g.small`**, Single-AZ, holding all three databases |
+| **Database** | Keep Neon (M-01), but first check who owns each database (§3a). Any database created through Replit moves to the customer's own Neon account. Optionally move later, as a separate change, to **1 × RDS PostgreSQL `db.t4g.small`**, Single-AZ, holding all three databases. This needs a change to the website's database driver (§5.1). |
 | **Region** | Same region as the Neon databases while Neon is kept, probably Frankfurt (M-02). Stockholm if everything moves to RDS. |
 | **Cost per year** | **$661** (Frankfurt, keep Neon, on-demand) up to **$1,067** (Frankfurt, with RDS, on-demand). About **$453–744** with 1-year reserved instances. Full breakdown in §4. |
 
@@ -80,6 +80,35 @@ flowchart LR
 | **Stockholm (`eu-north-1`)** | Closest AWS region to Latvia, and the cheapest of the two | Use it only if the databases move to RDS, or if Neon is in a nearby region |
 
 **First step:** check which region the current Neon projects are in. The Neon console shows it, and it's also part of each connection string's hostname. Put the EC2 instances in the same AWS region.
+
+## 3a. Who owns the databases (check first)
+
+Replit's built-in PostgreSQL runs on Neon, but the Neon account and its billing belong to Replit, not the customer. The code suggests at least some of the three databases were created that way:
+
+- `ABCDE-Web-EU/artifacts/api-server/src/db.ts` fails at start-up with "Please provision the local database" when `DATABASE_URL` is missing. That's Replit's wording for its built-in database.
+- `BarboraScraper-v1/docs/rimi-nutrition-import.md:12` calls `RIMI_DATABASE_URL` "account-linked".
+
+A database that Replit manages **has to move** when the Replit projects are shut down, whatever is decided for M-01. Before anything else, record for each database:
+
+| Database | Environment variable(s) | Owner (Replit-managed / customer's Neon account) | Neon region | Size |
+|---|---|---|---|---|
+| Rimi | `DATABASE_URL` in RimiScraper-v2, `RIMI_DATABASE_URL` in the website and Barbora | to check | to check | to check |
+| Maxima | `DATABASE_URL` / `PROD_DATABASE_URL` in BarboraScraper-v1, `MAXIMA_DATABASE_URL` in the website | to check | to check | to check |
+| Scans | `DATABASE_URL` in ABCDE-Web-EU | to check | to check | to check |
+
+How to check:
+1. Open the Database tool in each Replit project. A database listed there is Replit-managed.
+2. Log in to the customer's own Neon console and look for projects whose endpoint IDs match the hostnames in the connection strings.
+3. Read the region from the hostname, e.g. `ep-…​.eu-central-1.aws.neon.tech`.
+
+Moving a Replit-managed database to a Neon project the customer owns needs **no code changes**. Neon to Neon uses the same driver, so the only change is the connection string. The steps:
+1. Stop the writers.
+2. `pg_dump` from the old database and `pg_restore` into the new one.
+3. Check the row counts.
+4. Re-create the `product_ingredient_cards` materialized views.
+5. Switch the connection strings.
+
+This is step 1b in §6.
 
 ## 4. Costs
 
@@ -164,6 +193,20 @@ Changes needed to run outside Replit:
 | ABCDE-Web-EU | Set `SCAN_TOKEN_SECRET` explicitly. Without it, a random secret is created at every restart. | environment |
 | ABCDE-Web-EU | Serve the built SPA and API from one Node process behind Caddy. `pnpm run build`, then `node dist/index.mjs`. | deploy script |
 
+### 5.1 Only if the databases move to RDS (M-01 = RDS)
+
+The scrapers use `psycopg2`, which works with any PostgreSQL, so they need only new connection strings. The website is tied to Neon's own drivers, which don't work against RDS:
+
+| Change | Where | Note |
+|---|---|---|
+| Replace `Pool`/`neonConfig` from `@neondatabase/serverless` and `drizzle-orm/neon-serverless` with `pg`'s `Pool` and `drizzle-orm/node-postgres`. Remove the WebSocket setup (`neonConfig.webSocketConstructor`, `poolQueryViaFetch`). | `artifacts/api-server/src/db.ts` (78 lines) | Keep the pool limits (`max: 5`, idle and lifetime timeouts). Turn on TLS to RDS with the AWS root CA bundle. |
+| Replace Neon's HTTP `neon(url)` client with a `pg` pool or client | `artifacts/api-server/src/lib/barboraDatabase.ts` | Used by the `/api/extension` lookup |
+| **Check every place that depends on the shape of a query result** | `artifacts/api-server/src/routes/routes.ts`: 17 checks of the form `Array.isArray(...Result)` | Drivers can return results in a different shape (an array of rows, or an object with `.rows`). If the shape changes, these checks fail **without an error**, and endpoints quietly return empty data, for example "no healthier products". Change them to use one helper, and test each endpoint against RDS before the switch. |
+| Remove `@neondatabase/serverless` and `ws` from the dependencies, and add `pg` and `@types/pg` | `artifacts/api-server/package.json`; `replit.md` "Gotchas" | |
+| Make sure the `pg_trgm` extension exists on RDS, and re-create the materialized views and their unique indexes | `RimiScraper-v2/schema.sql` (`gin_trgm_ops`, `product_ingredient_cards`) | `pg_restore` restores the views. Refresh them once after restoring. |
+
+Estimated effort: 2–3 days including the endpoint tests, separate from the server migration.
+
 ## 6. Migration steps
 
 ```mermaid
@@ -172,7 +215,8 @@ gantt
     dateFormat  X
     axisFormat  %s
     section Prepare
-    Find Neon region, set up AWS account, IAM, budget alerts :p1, 0, 1
+    Find database owners and Neon regions, AWS account, IAM, budget alerts :p1, 0, 1
+    Move Replit-managed databases to the customer's own Neon project (if any) :p1b, 1, 2
     Dockerfiles / service units, secrets list         :p2, 1, 3
     Own Gemini API key, test scrapers locally         :p3, 2, 3
     section Build
@@ -183,17 +227,20 @@ gantt
     Stop Replit workers + schedulers; start AWS ones  :c1, 5, 6
     Lower DNS TTL, switch abcde.lv to web-1           :c2, 6, 7
     Watch 2 nightly runs                              :c3, 7, 9
-    section Optional (M-01 = RDS)
-    Create RDS, pg_dump/pg_restore from Neon, switch connection strings      :o1, 9, 11
-    Shut down Replit deployments                      :o2, 9, 10
+    section Finish
+    Shut down Replit deployments                      :f1, 9, 10
+    section Later, separately (M-01 = RDS)
+    Website driver change + endpoint tests (§5.1)     :o0, 12, 15
+    Create RDS, pg_dump/pg_restore from Neon, switch connection strings      :o1, 15, 17
 ```
 
 1. **Prepare.**
-   - Find the region of the Neon databases (M-02).
+   - Fill in the database ownership table in §3a: owner, Neon region and size of each database. The region decides M-02.
    - Create the AWS account structure, with an IAM user or SSO for the admin and a **budget alert** at, for example, $120/month.
    - Get a Gemini API key.
    - Write Dockerfiles or systemd units.
    - List every secret currently set in the three Replit projects.
+1b. **Move any Replit-managed database to a Neon project the customer owns.** Do this only for databases §3a marks as Replit-managed. Create the new project in the region chosen for M-02, then follow the steps in §3a. Writes must be stopped during the copy, so do it in a quiet window outside 02:00. No code changes are needed. After this step the customer owns every database, and nothing that remains depends on Replit.
 2. **Build.**
    - Create one VPC with a public subnet, and two EC2 instances using Amazon Linux 2023 ARM64 and an IAM role allowing SSM and CloudWatch.
    - Security groups: **web-1** accepts 80/443 from anywhere. **scraper-1** accepts no inbound traffic.
@@ -207,7 +254,7 @@ gantt
    - Point them at web-1's Elastic IP.
    - Keep the Replit website running until DNS has propagated.
 6. **Watch two nightly runs.** Compare `daily_update_logs` and `lightweight_update_runs` with the previous Replit runs: the number of categories, price changes and errors.
-7. **Optional: move the databases** (M-01).
+7. **Optional, later, as a separate change: move the databases to RDS** (M-01). Don't do this during the server cutover. Do it only after the website's driver change (§5.1) has passed its endpoint tests against a test RDS instance.
    - Create the RDS instance with three databases.
    - Copy the data with `pg_dump`/`pg_restore` from Neon during a short write freeze, with the workers stopped.
    - Re-create the `product_ingredient_cards` materialized views, and check that the `pg_trgm` extension exists (`schema.sql` uses `gin_trgm_ops`).
@@ -243,12 +290,14 @@ Until step 8 the Replit deployments stay available:
 | Gemini behaves differently with a direct key (quotas, model access) | Re-run a sample of ingredient analyses before cutover (step 1) |
 | Duplicate jobs while Replit and AWS workers overlap | Strict order in step 4. Never run both. |
 | A secret is left behind on Replit | List the secrets in step 1 and check them off. Rotate the database passwords after cutover. |
+| A database turns out to be Replit-managed and is lost when the Replit projects are shut down | §3a ownership check in step 1, and the move in step 1b. Don't shut down Replit (step 8) until every database in §3a is marked as owned by the customer. |
+| After a move to RDS, endpoints quietly return empty data because query results come back in a different shape | §5.1: one helper for result handling, and endpoint tests against RDS before switching |
 
 ## 9. Decisions for the customer
 
 | ID | Decision |
 |---|---|
-| **M-01** | **Keep Neon** for now and move the servers only (recommended: no data migration, smallest change, easy rollback). The alternative is to **move to RDS** at the same time (one vendor and roughly $400/year more on AWS, but one more risky step during cutover). This can be done later as step 7. |
+| **M-01** | **Keep Neon** and move the servers only. Any Replit-managed database moves to the customer's own Neon account (step 1b) (recommended: no code changes, smallest change, easy rollback; Neon keeps handling backups and point-in-time restore). The alternative is to **move to RDS**: one vendor and private networking, but about $406/year more on AWS (Frankfurt, on-demand) and a rewrite of the website's database driver (§5.1). If chosen, do it later as its own change (step 7), never during the cutover. Compare the actual Neon invoices with the RDS cost before deciding. |
 | **M-02** | **Same region as Neon**, probably Frankfurt (recommended: low latency, no cross-region transfer). The alternative is Stockholm, cheaper and closer to Latvia, but only sensible once the databases are on RDS. |
 | **M-03** | **Two instances** (recommended: the public site is separated from the scrapers, and admin pages aren't exposed). The alternative is **one `t4g.medium`** (about $225–245/year cheaper, but a single point of failure). |
 | **M-04** | **Leave `abcde-mcp` on Replit** for now (recommended: it's a separate service behind a fixed URL, and the website only proxies to it). The alternative is to migrate it too, as a third small service on web-1. |
