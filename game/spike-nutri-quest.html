@@ -1,0 +1,1249 @@
+<title>Spike's Nutri Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Rubik:wght@600;700;800;900&display=swap">
+<style>
+/* Layout: one full-screen 3D shop; chunky sticker-style panels float over it. Single bright look on purpose. */
+:root{
+  --ink:#1d2340;
+  --panel:#ffffff;
+  --panel-2:#eef5ff;
+  --sky:#bfe6f7;
+  --accent:#2b6cf2;
+  --accent-ink:#ffffff;
+  --quill:#7a4b2c;
+  --muted:#5a6487;
+  --nsA:#038141; --nsB:#85bb2f; --nsC:#fecb02; --nsD:#ee8100; --nsE:#e63e11;
+  --bad:#e63e11; --good:#038141;
+  --font-display:"Rubik","Trebuchet MS","Segoe UI",system-ui,sans-serif;
+  --font-body:"Nunito","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{background:var(--sky);color:var(--ink);font-family:var(--font-body);font-weight:700;overflow:hidden;-webkit-tap-highlight-color:transparent}
+#app{position:fixed;inset:0;overflow:hidden}
+#stage{position:absolute;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:pointer}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+.btn{background:var(--accent);color:var(--accent-ink);border:3px solid var(--ink);border-radius:16px;padding:10px 18px;font-family:var(--font-display);font-weight:800;font-size:1.05rem;box-shadow:0 4px 0 var(--ink);transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn.ghost{background:var(--panel);color:var(--ink)}
+.btn.big{font-size:1.3rem;padding:14px 28px}
+.btn[disabled]{opacity:.45;cursor:default}
+.panel{background:var(--panel);border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink)}
+
+/* HUD */
+.hud{position:absolute;pointer-events:none;z-index:5}
+.hud > *{pointer-events:auto}
+.topleft{top:calc(10px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));max-width:min(340px,calc(100% - 24px))}
+.topright{top:calc(10px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100% - 24px)}
+.pill{background:var(--panel);border:3px solid var(--ink);border-radius:999px;padding:5px 12px;font-family:var(--font-display);font-weight:800;font-size:.95rem;box-shadow:0 3px 0 var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.icon-btn{width:42px;height:42px;border-radius:50%;background:var(--panel);border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);font-family:var(--font-display);font-weight:900;font-size:1rem;display:grid;place-items:center;padding:0}
+.icon-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.icon-btn.off{opacity:.5}
+
+.quest{padding:0;overflow:hidden}
+.quest-head{display:flex;gap:8px;align-items:center;width:100%;background:var(--ink);color:#fff;border:0;padding:8px 12px;text-align:left}
+.quest-head .q-num{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;opacity:.8;white-space:nowrap}
+.quest-head .q-title{font-family:var(--font-display);font-weight:800;font-size:1.02rem;flex:1;min-width:0}
+.quest-head .q-prog{font-family:var(--font-display);font-weight:800;background:#fff;color:var(--ink);border-radius:999px;padding:1px 9px;font-variant-numeric:tabular-nums}
+.slots{list-style:none;margin:0;padding:8px 10px 10px;display:grid;gap:6px}
+.slots li{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:8px;padding:4px 6px;border-radius:10px;background:var(--panel-2);font-size:.92rem;line-height:1.15}
+.slots li .ico{font-size:1.3rem;text-align:center;filter:grayscale(1);opacity:.55}
+.slots li.done{background:#e4f6e8}
+.slots li.done .ico{filter:none;opacity:1}
+.slots li.done .lbl{text-decoration:line-through;text-decoration-thickness:2px;color:var(--muted)}
+.slots li .lbl{min-width:0}
+.need{display:flex;align-items:center;gap:4px;font-size:.78rem;color:var(--muted);white-space:nowrap}
+.mini{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;color:#fff;font-family:var(--font-display);font-weight:900;font-size:.8rem;font-style:normal}
+.mini.A{background:var(--nsA)}.mini.B{background:var(--nsB)}.mini.C{background:var(--nsC);color:var(--ink)}.mini.D{background:var(--nsD)}.mini.E{background:var(--nsE)}
+.mini.any{background:linear-gradient(90deg,var(--nsA),var(--nsB),var(--nsC),var(--nsD),var(--nsE));width:34px}
+.quest.collapsed .slots{display:none}
+
+.prompt{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;border-radius:999px;padding:10px 18px;font-family:var(--font-display);font-weight:800;font-size:1rem;z-index:6;pointer-events:auto;border:3px solid #fff;box-shadow:0 4px 0 rgba(0,0,0,.25);white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;animation:bob 1.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translate(-50%,-4px)}}
+
+.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;padding:10px 14px;z-index:7;max-width:min(520px,calc(100% - 32px));pointer-events:none}
+.toast p{margin:0;font-size:1rem;line-height:1.3}
+.toast.good{border-color:var(--good);box-shadow:0 5px 0 var(--good)}
+.toast.bad{border-color:var(--nsD);box-shadow:0 5px 0 var(--nsD)}
+.face{flex:none;width:52px;height:52px}
+
+.pop{position:absolute;z-index:9;font-family:var(--font-display);font-weight:900;font-size:1.5rem;color:var(--nsA);-webkit-text-stroke:2px #fff;paint-order:stroke fill;pointer-events:none;animation:pop 1.1s ease-out forwards}
+@keyframes pop{0%{transform:translateY(0) scale(.6);opacity:0}15%{transform:translateY(-6px) scale(1.15);opacity:1}100%{transform:translateY(-60px) scale(1);opacity:0}}
+
+/* Dialog */
+.dialog{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));width:min(680px,calc(100% - 24px));display:flex;gap:14px;padding:14px 16px;z-index:8;align-items:flex-start}
+.dialog .face{width:76px;height:76px}
+.dlg-body{flex:1;min-width:0;display:grid;gap:8px}
+.dlg-name{font-family:var(--font-display);font-weight:900;color:var(--quill);font-size:.95rem;letter-spacing:.04em;text-transform:uppercase}
+#dlgText{margin:0;font-size:1.12rem;line-height:1.4;min-height:3em}
+.dlg-actions{display:flex;justify-content:flex-end}
+
+/* Nutri-Score strip */
+.ns-strip{display:inline-flex;align-items:flex-end;gap:0;border:3px solid var(--ink);border-radius:14px;padding:6px 10px 6px;background:#fff;justify-self:start}
+.ns-strip .lbl{font-family:var(--font-display);font-weight:900;font-size:.72rem;letter-spacing:.08em;color:var(--muted);margin-right:8px;align-self:center;writing-mode:vertical-rl;transform:rotate(180deg)}
+.ns-strip span{display:grid;place-items:center;width:38px;height:38px;color:#fff;font-family:var(--font-display);font-weight:900;font-size:1.3rem;transition:transform .3s}
+.ns-strip span:first-of-type{border-radius:10px 0 0 10px}.ns-strip span:last-of-type{border-radius:0 10px 10px 0}
+.ns-strip .A{background:var(--nsA)}.ns-strip .B{background:var(--nsB)}.ns-strip .C{background:var(--nsC);color:var(--ink)}.ns-strip .D{background:var(--nsD)}.ns-strip .E{background:var(--nsE)}
+.ns-strip.pick span{opacity:.55}
+.ns-strip span.on{opacity:1;transform:scale(1.35);border-radius:10px;border:3px solid #fff;box-shadow:0 0 0 3px var(--ink);z-index:1;position:relative}
+
+/* Modals */
+.modal{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(29,35,64,.45);padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.sheet{width:min(480px,100%);max-height:100%;overflow:auto;padding:18px;position:relative;display:grid;gap:12px}
+.sheet h2{margin:0;font-family:var(--font-display);font-weight:900;font-size:1.45rem;line-height:1.15;text-wrap:balance}
+.x{position:absolute;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:3px solid var(--ink);background:#fff;font-size:1.3rem;line-height:1;display:grid;place-items:center;padding:0}
+.card-head{display:flex;gap:14px;align-items:center;padding-right:40px}
+.big-emoji{flex:none;width:76px;height:76px;border-radius:18px;display:grid;place-items:center;font-size:2.6rem;border:3px solid var(--ink)}
+.sec-chip{display:inline-block;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.per{font-size:.85rem;color:var(--muted)}
+.facts{width:100%;border-collapse:collapse;font-size:.98rem}
+.facts td{padding:5px 4px;border-bottom:2px dashed #d6dff0}
+.facts td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.facts td.p{text-align:right;width:62px}
+.chip{display:inline-block;min-width:38px;text-align:center;border-radius:999px;padding:1px 8px;font-family:var(--font-display);font-weight:900;font-size:.85rem;color:#fff}
+.chip.bad{background:var(--bad)}.chip.good{background:var(--good)}.chip.zero{background:#c9d1e3;color:var(--ink)}
+.chip.skip{background:#c9d1e3;color:var(--ink);text-decoration:line-through}
+.sub{font-size:.8rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.guess-q{margin:0;font-family:var(--font-display);font-weight:900;font-size:1.2rem;text-align:center}
+.guess-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.guess-row button{aspect-ratio:1;max-width:100%;border:3px solid var(--ink);border-radius:14px;font-family:var(--font-display);font-weight:900;font-size:1.6rem;color:#fff;box-shadow:0 4px 0 var(--ink)}
+.guess-row button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.guess-row .A{background:var(--nsA)}.guess-row .B{background:var(--nsB)}.guess-row .C{background:var(--nsC);color:var(--ink)}.guess-row .D{background:var(--nsD)}.guess-row .E{background:var(--nsE)}
+.hint{margin:0;font-size:.9rem;color:var(--muted);text-align:center;line-height:1.35}
+.verdict{margin:0;text-align:center;font-family:var(--font-display);font-weight:900;font-size:1.25rem}
+.calc{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;font-family:var(--font-display);font-weight:800;font-size:1.05rem}
+.calc .num{display:inline-grid;place-items:center;min-width:44px;height:44px;border-radius:12px;color:#fff;font-size:1.3rem;border:3px solid var(--ink)}
+.calc .num.bad{background:var(--bad)}.calc .num.good{background:var(--good)}.calc .num.res{background:#fff;color:var(--ink)}
+.calc small{display:block;font-size:.68rem;color:var(--muted);text-align:center;font-weight:800}
+.calc .col{display:grid;justify-items:center;gap:2px}
+.why{margin:0;text-align:center;line-height:1.35}
+.note{margin:0;text-align:center;font-size:.85rem;color:var(--muted)}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.center{display:grid;justify-items:center;gap:10px;text-align:center}
+
+/* Title */
+.screen{position:absolute;inset:0;z-index:15;display:grid;align-items:end;justify-items:center;padding:0 max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(to top,rgba(29,35,64,.55),rgba(29,35,64,0) 60%)}
+.title-card{width:min(560px,100%);padding:20px;display:grid;gap:14px;justify-items:center;text-align:center}
+.title-card h1{margin:0;font-family:var(--font-display);font-weight:900;font-size:clamp(1.8rem,6vw,2.8rem);line-height:1.02;text-wrap:balance}
+.title-card h1 .abc{display:inline-flex;gap:3px;vertical-align:middle}
+.title-card .tag{margin:0;font-size:1.05rem;color:var(--muted);max-width:42ch;line-height:1.35}
+.lang-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.lang-row button{border:3px solid var(--ink);border-radius:14px;background:#fff;padding:8px 14px;font-family:var(--font-display);font-weight:800;box-shadow:0 3px 0 var(--ink)}
+.lang-row button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;font-weight:800}
+.stars{font-size:2.6rem;letter-spacing:.1em;text-align:center;line-height:1}
+.stars .s{color:#d6dbe8;display:inline-block}
+.stars .s.on{color:#ffbf00;-webkit-text-stroke:2px var(--ink);animation:starin .5s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes starin{from{transform:scale(0) rotate(-90deg)}to{transform:scale(1) rotate(0)}}
+.star-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.star-list li{display:flex;gap:8px;align-items:center;background:var(--panel-2);border-radius:10px;padding:6px 10px}
+.star-list li .k{font-size:1.2rem}
+.star-list li.off{opacity:.5}
+.help-list{margin:0;padding-left:1.2em;display:grid;gap:6px;line-height:1.4}
+@media (max-width:560px){
+  .quest-head .q-num{display:none}
+  .slots li{font-size:.85rem}
+  .dialog .face{width:56px;height:56px}
+  #dlgText{font-size:1rem}
+  .pill.found{display:none}
+  .topleft{top:calc(62px + env(safe-area-inset-top,0px))}
+  .topright{left:max(12px,env(safe-area-inset-left,0px))}
+  .pill{font-size:.85rem;padding:4px 10px}
+  .icon-btn{width:38px;height:38px}
+}
+@media (prefers-reduced-motion:reduce){
+  .prompt{animation:none}
+  .stars .s.on{animation:none}
+  .pop{animation-duration:.01s}
+}
+</style>
+
+<div id="app">
+  <div id="stage"></div>
+
+  <div class="hud topleft">
+    <div id="quest" class="panel quest" hidden>
+      <button id="questToggle" class="quest-head" aria-expanded="true">
+        <span class="q-num" id="qNum"></span>
+        <span class="q-title" id="qTitle"></span>
+        <span class="q-prog" id="qProg"></span>
+      </button>
+      <ul class="slots" id="slotList"></ul>
+    </div>
+  </div>
+
+  <div class="hud topright">
+    <div class="pill" id="scorePill"></div>
+    <div class="pill found" id="foundPill"></div>
+    <button class="icon-btn" id="hintBtn" title="Hint">★</button>
+    <button class="icon-btn" id="langBtn" title="Language">LV</button>
+    <button class="icon-btn" id="soundBtn" title="Sound">♪</button>
+    <button class="icon-btn" id="helpBtn" title="Help">?</button>
+  </div>
+
+  <div id="prompt" class="prompt" hidden></div>
+  <div id="toast" class="toast panel" hidden><div class="face"></div><p id="toastText"></p></div>
+
+  <div id="dialog" class="dialog panel" hidden>
+    <div class="face"></div>
+    <div class="dlg-body">
+      <div class="dlg-name" id="dlgName"></div>
+      <p id="dlgText"></p>
+      <div id="dlgScale" class="ns-strip" hidden></div>
+      <div class="dlg-actions"><button class="btn" id="dlgNext"></button></div>
+    </div>
+  </div>
+
+  <div id="card" class="modal" hidden>
+    <div class="sheet panel" role="dialog" aria-modal="true" aria-labelledby="cardName">
+      <button class="x" id="cardClose" aria-label="Close">×</button>
+      <div class="card-head">
+        <div class="big-emoji" id="cardEmoji"></div>
+        <div style="min-width:0">
+          <div class="sec-chip" id="cardSec"></div>
+          <h2 id="cardName"></h2>
+          <div class="per" id="cardPer"></div>
+        </div>
+      </div>
+      <table class="facts" id="facts"></table>
+      <div id="guessArea" class="center">
+        <p class="guess-q" id="guessQ"></p>
+        <div class="guess-row" id="guessRow" style="width:100%"></div>
+        <p class="hint" id="guessHint"></p>
+      </div>
+      <div id="revealArea" class="center" hidden>
+        <p class="verdict" id="verdict"></p>
+        <div class="ns-strip pick" id="cardStrip"></div>
+        <div class="calc" id="calc"></div>
+        <p class="why" id="why"></p>
+        <p class="note" id="catNote"></p>
+        <div class="actions">
+          <button class="btn" id="addBtn"></button>
+          <button class="btn ghost" id="backBtn"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="complete" class="modal" hidden>
+    <div class="sheet panel center">
+      <h2 id="cTitle"></h2>
+      <div class="stars" id="cStars"></div>
+      <ul class="star-list" id="cList" style="width:100%"></ul>
+      <p id="cPts" style="margin:0;font-family:var(--font-display);font-weight:900;font-size:1.2rem"></p>
+      <button class="btn big" id="cNext"></button>
+    </div>
+  </div>
+
+  <div id="final" class="modal" hidden>
+    <div class="sheet panel center">
+      <div class="face" style="width:110px;height:110px"></div>
+      <h2 id="fTitle"></h2>
+      <div class="stars" id="fStars"></div>
+      <p id="fText" style="margin:0;line-height:1.4"></p>
+      <button class="btn big" id="fAgain"></button>
+    </div>
+  </div>
+
+  <div id="help" class="modal" hidden>
+    <div class="sheet panel">
+      <button class="x" id="helpClose" aria-label="Close">×</button>
+      <h2 id="hTitle"></h2>
+      <ul class="help-list" id="hList"></ul>
+      <div class="ns-strip" id="hStrip"></div>
+      <p id="hScale" style="margin:0;line-height:1.4"></p>
+    </div>
+  </div>
+
+  <div id="title" class="screen">
+    <div class="title-card panel">
+      <h1 id="tName"></h1>
+      <p class="tag" id="tTag"></p>
+      <div class="lang-row" id="langRow">
+        <button data-lang="lv">Latviešu</button>
+        <button data-lang="ru">Русский</button>
+        <button data-lang="en">English</button>
+      </div>
+      <button class="btn big" id="playBtn"></button>
+      <button class="link" id="newBtn" hidden></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ======================= DATA & RULES ======================= */
+//<DATA>
+const NS=['A','B','C','D','E'];
+const NSC={A:'#038141',B:'#85bb2f',C:'#fecb02',D:'#ee8100',E:'#e63e11'};
+const TH={
+  en:[335,670,1005,1340,1675,2010,2345,2680,3015,3350],
+  su:[3.4,6.8,10,14,17,20,24,27,31,34,37,41,44,48,51],
+  sf:[1,2,3,4,5,6,7,8,9,10],
+  sa:[0.2,0.4,0.6,0.8,1,1.2,1.4,1.6,1.8,2,2.2,2.4,2.6,2.8,3,3.2,3.4,3.6,3.8,4],
+  pr:[2.4,4.8,7.2,9.6,12,14,17],
+  fi:[3,4.1,5.2,6.3,7.4],
+  bEn:[30,90,150,210,240,270,300,330,360,390],
+  bSu:[0.5,2,3.5,5,6,7,8,9,10,11],
+  bPr:[1.2,1.5,1.8,2.1,2.4,2.7,3],
+  fEn:[120,240,360,480,600,720,840,960,1080,1200],
+  fRa:[10,16,22,28,34,40,46,52,58,64]
+};
+function pts(v,T){let i=0;while(i<T.length&&v>T[i])i++;return i;}
+function sum(o){let s=0;for(const k in o)s+=o[k];return s;}
+// Nutri-Score (2023/2024 rules, simplified for teaching): not-so-good points minus good points.
+function nutri(p){
+  const n=Object.assign({kj:0,sug:0,sf:0,salt:0,fib:0,pro:0,fvl:0,fat:0,sweet:false},p.n||{});
+  const cat=p.cat||'food';
+  if(cat==='water') return {grade:'A',S:0,N:0,P:0,bad:{},good:{},proteinCounted:true,water:true,cat};
+  const bad={},good={};
+  let proteinCounted=true,grade;
+  if(cat==='drink'){
+    bad.energy=pts(n.kj,TH.bEn); bad.sugar=pts(n.sug,TH.bSu); bad.satfat=pts(n.sf,TH.sf); bad.salt=pts(n.salt,TH.sa);
+    if(n.sweet) bad.sweet=4;
+    good.protein=pts(n.pro,TH.bPr); good.fiber=pts(n.fib,TH.fi); good.fvl=n.fvl>80?6:n.fvl>60?4:n.fvl>40?2:0;
+  }else if(cat==='fat'){
+    bad.energy=pts(n.sf*37,TH.fEn); bad.satfat=pts(n.fat>0?n.sf/n.fat*100:0,TH.fRa); bad.sugar=pts(n.sug,TH.su); bad.salt=pts(n.salt,TH.sa);
+    good.protein=pts(n.pro,TH.pr); good.fiber=pts(n.fib,TH.fi); good.fvl=n.fvl>80?5:n.fvl>60?2:n.fvl>40?1:0;
+    if(sum(bad)>=7) proteinCounted=false;
+  }else{
+    bad.energy=pts(n.kj,TH.en); bad.sugar=pts(n.sug,TH.su); bad.satfat=pts(n.sf,TH.sf); bad.salt=pts(n.salt,TH.sa);
+    good.protein=pts(n.pro,TH.pr); good.fiber=pts(n.fib,TH.fi); good.fvl=n.fvl>80?5:n.fvl>60?2:n.fvl>40?1:0;
+    if(cat!=='cheese'&&sum(bad)>=11) proteinCounted=false;
+  }
+  const proteinRaw=good.protein;
+  if(!proteinCounted) good.protein=0;
+  const N=sum(bad),P=sum(good),S=N-P;
+  if(cat==='drink') grade=S<=2?'B':S<=6?'C':S<=9?'D':'E';
+  else if(cat==='fat') grade=S<=-6?'A':S<=2?'B':S<=10?'C':S<=18?'D':'E';
+  else grade=S<=0?'A':S<=2?'B':S<=10?'C':S<=18?'D':'E';
+  return {grade,S,N,P,bad,good,proteinCounted,proteinRaw,cat};
+}
+
+// Sections: positions in metres. Products face +z (toward the shopper).
+const SECTIONS=[
+  {id:'drinks',   e:'🥤',col:'#1f8fd1',x:-12,z:-15.6,len:9,  kind:'fridge',nm:['Drinks','Dzērieni','Напитки']},
+  {id:'dairy',    e:'🥛',col:'#4a7fe0',x:0,  z:-15.6,len:9,  kind:'fridge',nm:['Dairy & eggs','Piens un olas','Молочное и яйца']},
+  {id:'meat',     e:'🍗',col:'#d4463f',x:12, z:-15.6,len:9,  kind:'fridge',nm:['Meat & fish','Gaļa un zivis','Мясо и рыба']},
+  {id:'bakery',   e:'🥐',col:'#d58431',x:-9, z:-8,   len:9,  kind:'shelf', nm:['Bakery','Maiznīca','Пекарня']},
+  {id:'pantry',   e:'🍝',col:'#8a62d6',x:9,  z:-8,   len:9,  kind:'shelf', nm:['Pantry','Bakaleja','Бакалея']},
+  {id:'breakfast',e:'🥣',col:'#e0a51d',x:-9, z:-1,   len:9,  kind:'shelf', nm:['Breakfast & spreads','Brokastis un ziežamie','Завтрак и пасты']},
+  {id:'snacks',   e:'🍿',col:'#e2477f',x:9,  z:-1,   len:9,  kind:'shelf', nm:['Snacks & sweets','Uzkodas un saldumi','Снеки и сладости']},
+  {id:'produce',  e:'🍎',col:'#2f9e54',x:9,  z:7,    len:13.2,kind:'crates',nm:['Fruit & veg','Augļi un dārzeņi','Фрукты и овощи']}
+];
+
+// Generic products (no brands). n = per 100 g / 100 ml.
+const PRODUCTS=[
+ // produce
+ {id:'apple',s:'produce',e:'🍎',sh:'crate',c:'#d93a2b',nm:['Apples','Āboli','Яблоки'],n:{kj:218,sug:10.4,fib:2.4,pro:.3,fvl:100},tg:['fruit']},
+ {id:'banana',s:'produce',e:'🍌',sh:'crate',c:'#f2d02f',nm:['Bananas','Banāni','Бананы'],n:{kj:371,sug:12.2,fib:2.6,pro:1.1,fvl:100},tg:['fruit']},
+ {id:'grapes',s:'produce',e:'🍇',sh:'crate',c:'#7b3fa0',nm:['Grapes','Vīnogas','Виноград'],n:{kj:288,sug:16,fib:.9,pro:.7,fvl:100},tg:['fruit']},
+ {id:'strawberry',s:'produce',e:'🍓',sh:'crate',c:'#e8303f',nm:['Strawberries','Zemenes','Клубника'],n:{kj:136,sug:4.9,fib:2,pro:.7,fvl:100},tg:['fruit']},
+ {id:'avocado',s:'produce',e:'🥑',sh:'crate',c:'#4f7a2a',nm:['Avocados','Avokado','Авокадо'],n:{kj:670,sug:.7,sf:2.1,fib:6.7,pro:2,fvl:100},tg:['fruit']},
+ {id:'carrot',s:'produce',e:'🥕',sh:'crate',c:'#f07c1c',nm:['Carrots','Burkāni','Морковь'],n:{kj:173,sug:4.7,fib:2.8,pro:.9,fvl:100},tg:['veg']},
+ {id:'broccoli',s:'produce',e:'🥦',sh:'crate',c:'#3d8b3d',nm:['Broccoli','Brokoļi','Брокколи'],n:{kj:141,sug:1.7,fib:2.6,pro:2.8,fvl:100},tg:['veg']},
+ {id:'tomato',s:'produce',e:'🍅',sh:'crate',c:'#e2412f',nm:['Tomatoes','Tomāti','Помидоры'],n:{kj:74,sug:2.6,fib:1.2,pro:.9,fvl:100},tg:['veg']},
+ {id:'cucumber',s:'produce',e:'🥒',sh:'crate',c:'#3f9a45',nm:['Cucumbers','Gurķi','Огурцы'],n:{kj:64,sug:1.7,fib:.5,pro:.7,fvl:100},tg:['veg']},
+ {id:'onion',s:'produce',e:'🧅',sh:'crate',c:'#c9955a',nm:['Onions','Sīpoli','Лук'],n:{kj:166,sug:4.2,fib:1.7,pro:1.1,fvl:100},tg:['veg']},
+ {id:'potato',s:'produce',e:'🥔',sh:'crate',c:'#b9894f',nm:['Potatoes','Kartupeļi','Картофель'],n:{kj:322,sug:.8,fib:2.2,pro:2},tg:['side']},
+ // bakery
+ {id:'rye',s:'bakery',e:'🍞',sh:'loaf',c:'#4a2c1a',nm:['Dark rye bread','Rupjmaize','Тёмный ржаной хлеб'],n:{kj:900,sug:4,sf:.3,salt:.9,fib:8,pro:7},tg:['bread']},
+ {id:'toast',s:'bakery',e:'🍞',sh:'loaf',c:'#f1e2c2',nm:['White toast bread','Baltmaize tostiem','Белый хлеб для тостов'],n:{kj:1100,sug:5,sf:.5,salt:1.2,fib:2.5,pro:8},tg:['bread']},
+ {id:'bun',s:'bakery',e:'🥯',sh:'loaf',c:'#c08a4a',nm:['Wholegrain buns','Pilngraudu maizītes','Цельнозерновые булочки'],n:{kj:1050,sug:5,sf:.4,salt:1,fib:4.5,pro:10},tg:['bread']},
+ {id:'croissant',s:'bakery',e:'🥐',sh:'bag',c:'#e9b25a',nm:['Butter croissants','Sviesta kruasāni','Круассаны'],n:{kj:1700,sug:10,sf:14,salt:1,fib:2,pro:8},tg:['pastry']},
+ {id:'donut',s:'bakery',e:'🍩',sh:'bag',c:'#f29bc0',nm:['Glazed doughnuts','Glazēti virtuļi','Пончики в глазури'],n:{kj:1800,sug:22,sf:9,salt:.8,fib:1.5,pro:5},tg:['sweet']},
+ {id:'wrapW',s:'bakery',e:'🌯',sh:'bag',c:'#f5ecd7',nm:['White tortilla wraps','Baltās tortiljas','Белые тортильи'],n:{kj:1300,sug:3,sf:2.5,salt:1.3,fib:2.5,pro:8},tg:['bread']},
+ {id:'wrapG',s:'bakery',e:'🌯',sh:'bag',c:'#b98a55',nm:['Wholegrain wraps','Pilngraudu tortiljas','Цельнозерновые тортильи'],n:{kj:1250,sug:2.5,sf:1,salt:1,fib:7,pro:9},tg:['bread']},
+ // dairy
+ {id:'milk',s:'dairy',e:'🥛',sh:'carton',c:'#ffffff',cat:'drink',nm:['Milk 1.5%','Piens 1,5%','Молоко 1,5%'],n:{kj:195,sug:4.8,sf:1,salt:.1,pro:3.4},tg:['milk']},
+ {id:'kefir',s:'dairy',e:'🥛',sh:'carton',c:'#cfe0f7',cat:'drink',nm:['Kefir','Kefīrs','Кефир'],n:{kj:170,sug:4,sf:1,salt:.1,pro:3.2},tg:['milk']},
+ {id:'yogurt',s:'dairy',e:'🥣',sh:'jar',c:'#ffffff',nm:['Plain yogurt','Dabīgais jogurts','Натуральный йогурт'],n:{kj:260,sug:4,sf:1.2,salt:.1,pro:4.5},tg:['yogurt']},
+ {id:'yogurtS',s:'dairy',e:'🍓',sh:'jar',c:'#f6b4c4',nm:['Strawberry yogurt','Zemeņu jogurts','Клубничный йогурт'],n:{kj:400,sug:12,sf:2,salt:.1,pro:3.5,fvl:10},tg:['yogurt','dessert']},
+ {id:'quark',s:'dairy',e:'🥣',sh:'tray',c:'#ffffff',nm:['Quark (biezpiens)','Biezpiens','Творог'],n:{kj:420,sug:3,sf:3,salt:.1,pro:16},tg:['quark']},
+ {id:'pudding',s:'dairy',e:'🍮',sh:'jar',c:'#6b3e26',nm:['Chocolate pudding','Šokolādes pudiņš','Шоколадный пудинг'],n:{kj:520,sug:18,sf:3.5,salt:.2,pro:3},tg:['dessert']},
+ {id:'gouda',s:'dairy',e:'🧀',sh:'tray',c:'#f4c430',cat:'cheese',nm:['Gouda cheese','Gouda siers','Сыр гауда'],n:{kj:1500,sf:17,salt:1.6,pro:25},tg:['cheese']},
+ {id:'mozz',s:'dairy',e:'🧀',sh:'tray',c:'#fbf6e9',cat:'cheese',nm:['Mozzarella','Mocarella','Моцарелла'],n:{kj:1050,sf:11,salt:.5,pro:18},tg:['cheese']},
+ {id:'mozzL',s:'dairy',e:'🧀',sh:'tray',c:'#d8e6fb',cat:'cheese',nm:['Light mozzarella','Vieglā mocarella','Моцарелла лайт'],n:{kj:700,sf:6,salt:.4,pro:19},tg:['cheese']},
+ {id:'butter',s:'dairy',e:'🧈',sh:'tray',c:'#f7e27a',cat:'fat',nm:['Butter','Sviests','Сливочное масло'],n:{fat:82,sf:51,sug:.6},tg:['fat']},
+ {id:'eggs',s:'dairy',e:'🥚',sh:'tray',c:'#e9d7b5',nm:['Eggs','Olas','Яйца'],n:{kj:600,sug:.4,sf:3.1,salt:.35,pro:12.6},tg:['egg','protein']},
+ // meat & fish
+ {id:'chicken',s:'meat',e:'🍗',sh:'tray',c:'#f2b8a0',nm:['Chicken fillet','Vistas fileja','Куриное филе'],n:{kj:460,sf:.3,salt:.2,pro:23},tg:['protein']},
+ {id:'salmon',s:'meat',e:'🐟',sh:'tray',c:'#f08a5d',nm:['Salmon fillet','Laša fileja','Филе лосося'],n:{kj:870,sf:2.3,salt:.1,pro:20},tg:['protein','fish']},
+ {id:'tuna',s:'meat',e:'🐟',sh:'can',c:'#5b8fc9',nm:['Tuna in water','Tuncis savā sulā','Тунец в собственном соку'],n:{kj:480,sf:.3,salt:.9,pro:25},tg:['protein','fish']},
+ {id:'ham',s:'meat',e:'🍖',sh:'tray',c:'#e88a9a',nm:['Smoked ham slices','Kūpināta šķiņķa šķēles','Копчёная ветчина'],n:{kj:480,sug:1,sf:1.2,salt:2.5,pro:19},tg:['coldcut','protein']},
+ {id:'turkey',s:'meat',e:'🦃',sh:'tray',c:'#f3d1b3',nm:['Turkey slices, less salt','Tītara šķēles, mazāk sāls','Индейка в нарезке, меньше соли'],n:{kj:430,sug:1,sf:.6,salt:1.6,pro:20},tg:['coldcut']},
+ {id:'sausage',s:'meat',e:'🌭',sh:'tray',c:'#d0654a',nm:['Frankfurters','Cīsiņi','Сосиски'],n:{kj:1200,sug:1.5,sf:9,salt:2,pro:12},tg:['protein']},
+ // pantry
+ {id:'pastaG',s:'pantry',e:'🍝',sh:'box',c:'#8a5a2b',nm:['Wholegrain pasta','Pilngraudu makaroni','Цельнозерновые макароны'],n:{kj:1450,sug:3,sf:.5,fib:8,pro:13},tg:['side']},
+ {id:'pastaW',s:'pantry',e:'🍝',sh:'box',c:'#f3d36b',nm:['White pasta','Makaroni','Макароны'],n:{kj:1500,sug:3.5,sf:.3,fib:3,pro:12},tg:['side']},
+ {id:'rice',s:'pantry',e:'🍚',sh:'bag',c:'#c79a6b',nm:['Brown rice','Brūnie rīsi','Бурый рис'],n:{kj:1500,sug:.7,sf:.5,fib:3.5,pro:7.5},tg:['side']},
+ {id:'passata',s:'pantry',e:'🍅',sh:'bottle',c:'#c8281e',nm:['Tomato passata','Tomātu pasata','Томатная пассата'],n:{kj:130,sug:4,salt:.4,fib:1.4,pro:1.4,fvl:90},tg:['sauce']},
+ {id:'ketchup',s:'pantry',e:'🥫',sh:'bottle',c:'#d1241c',nm:['Ketchup','Kečups','Кетчуп'],n:{kj:430,sug:22,salt:1.8,fib:.8,pro:1.2,fvl:60},tg:['sauce']},
+ {id:'chickpeas',s:'pantry',e:'🥫',sh:'can',c:'#d9b26f',nm:['Chickpeas, tinned','Aunazirņi, konservēti','Нут консервированный'],n:{kj:470,sug:.5,salt:.6,fib:6,pro:7,fvl:100},tg:['protein']},
+ {id:'flourG',s:'pantry',e:'🌾',sh:'bag',c:'#b88a5a',nm:['Wholegrain flour','Pilngraudu milti','Цельнозерновая мука'],n:{kj:1400,sug:1,sf:.3,fib:10,pro:12},tg:['flour']},
+ {id:'flourW',s:'pantry',e:'🌾',sh:'bag',c:'#f4f4f4',nm:['White flour','Kviešu milti','Пшеничная мука'],n:{kj:1450,sug:.3,sf:.2,fib:3,pro:10},tg:['flour']},
+ {id:'oil',s:'pantry',e:'🌼',sh:'bottle',c:'#f2d43a',cat:'fat',nm:['Rapeseed oil','Rapšu eļļa','Рапсовое масло'],n:{fat:100,sf:7},tg:['fat']},
+ {id:'doughW',s:'pantry',e:'🍕',sh:'bag',c:'#f5e6c8',nm:['Pizza dough','Picas mīkla','Тесто для пиццы'],n:{kj:1100,sug:2,sf:1.5,salt:1.4,fib:2.5,pro:7.5},tg:['dough']},
+ {id:'doughG',s:'pantry',e:'🍕',sh:'bag',c:'#c49a6c',nm:['Wholegrain pizza dough','Pilngraudu picas mīkla','Цельнозерновое тесто для пиццы'],n:{kj:1050,sug:2,sf:.5,salt:1,fib:6,pro:9},tg:['dough']},
+ // breakfast & spreads
+ {id:'oats',s:'breakfast',e:'🥣',sh:'box',c:'#d9c08a',nm:['Oat flakes','Auzu pārslas','Овсяные хлопья'],n:{kj:1550,sug:1,sf:1.3,fib:10,pro:13},tg:['cereal']},
+ {id:'muesli',s:'breakfast',e:'🥣',sh:'box',c:'#9cc46b',nm:['Muesli, no added sugar','Musli bez pievienota cukura','Мюсли без добавленного сахара'],n:{kj:1500,sug:12,sf:1.5,salt:.05,fib:9,pro:10,fvl:20},tg:['cereal']},
+ {id:'chocoballs',s:'breakfast',e:'🥣',sh:'box',c:'#6a3b1f',nm:['Chocolate cereal balls','Šokolādes pārslu bumbiņas','Шоколадные шарики'],n:{kj:1650,sug:30,sf:2,salt:.5,fib:5,pro:8},tg:['cereal']},
+ {id:'frosted',s:'breakfast',e:'🥣',sh:'box',c:'#3a7bd5',nm:['Frosted corn flakes','Glazētas kukurūzas pārslas','Глазированные кукурузные хлопья'],n:{kj:1600,sug:35,sf:.2,salt:.8,fib:2,pro:7},tg:['cereal']},
+ {id:'honey',s:'breakfast',e:'🍯',sh:'jar',c:'#e0a21b',nm:['Honey','Medus','Мёд'],n:{kj:1270,sug:82},tg:['sweet']},
+ {id:'jam',s:'breakfast',e:'🍓',sh:'jar',c:'#b5172f',nm:['Strawberry jam','Zemeņu ievārījums','Клубничное варенье'],n:{kj:1000,sug:50,fvl:40},tg:['sweet']},
+ {id:'chocspread',s:'breakfast',e:'🍫',sh:'jar',c:'#5a3420',nm:['Chocolate spread','Šokolādes krēms','Шоколадная паста'],n:{kj:2250,sug:56,sf:10.6,salt:.1,fib:3.4,pro:6},tg:['sweet']},
+ {id:'pb',s:'breakfast',e:'🥜',sh:'jar',c:'#c58a46',cat:'fat',nm:['Peanut butter','Zemesriekstu sviests','Арахисовая паста'],n:{fat:50,sf:10,sug:5,salt:1,fib:6,pro:25,fvl:100},tg:['spread']},
+ // drinks
+ {id:'water',s:'drinks',e:'💧',sh:'bottle',c:'#9fd8f5',cat:'water',nm:['Still water','Negāzēts ūdens','Вода без газа'],tg:['drink']},
+ {id:'sparkling',s:'drinks',e:'💦',sh:'bottle',c:'#5fb4e0',cat:'water',nm:['Sparkling water','Gāzēts ūdens','Газированная вода'],tg:['drink']},
+ {id:'birch',s:'drinks',e:'🌳',sh:'bottle',c:'#e7f2d0',cat:'drink',nm:['Birch sap','Bērzu sula','Берёзовый сок'],n:{kj:25,sug:.9},tg:['drink']},
+ {id:'oj',s:'drinks',e:'🍊',sh:'carton',c:'#f6a21a',cat:'drink',nm:['Orange juice 100%','Apelsīnu sula 100%','Апельсиновый сок 100%'],n:{kj:190,sug:8.4,fib:.2,pro:.7,fvl:100},tg:['drink']},
+ {id:'smoothie',s:'drinks',e:'🍹',sh:'bottle',c:'#e95f8b',cat:'drink',nm:['Fruit smoothie','Augļu smūtijs','Фруктовый смузи'],n:{kj:250,sug:11,fib:1.5,pro:.8,fvl:100},tg:['drink']},
+ {id:'kvass',s:'drinks',e:'🌾',sh:'bottle',c:'#7a4a1d',cat:'drink',nm:['Kvass','Kvass','Квас'],n:{kj:130,sug:6},tg:['drink']},
+ {id:'icedtea',s:'drinks',e:'🍑',sh:'bottle',c:'#f0a35e',cat:'drink',nm:['Peach iced tea','Persiku ledus tēja','Холодный чай с персиком'],n:{kj:85,sug:5},tg:['drink']},
+ {id:'chocmilk',s:'drinks',e:'🍫',sh:'carton',c:'#8b5a3c',cat:'drink',nm:['Chocolate milk','Šokolādes piens','Шоколадное молоко'],n:{kj:300,sug:10,sf:1,salt:.1,pro:3.2},tg:['drink']},
+ {id:'cola',s:'drinks',e:'🥤',sh:'bottle',c:'#8b1e1e',cat:'drink',nm:['Cola','Kola','Кола'],n:{kj:180,sug:10.6},tg:['drink']},
+ {id:'colazero',s:'drinks',e:'🥤',sh:'bottle',c:'#2a2a2a',cat:'drink',nm:['Cola, zero sugar','Kola bez cukura','Кола без сахара'],n:{kj:1,sweet:true},tg:['drink']},
+ // snacks & sweets
+ {id:'nuts',s:'snacks',e:'🌰',sh:'bag',c:'#a8743f',cat:'fat',nm:['Mixed nuts, unsalted','Riekstu maisījums, nesālīts','Ореховая смесь без соли'],n:{fat:54,sf:6,sug:4,fib:9,pro:20,fvl:100},tg:['snack']},
+ {id:'popcorn',s:'snacks',e:'🍿',sh:'bag',c:'#e94b3c',nm:['Popcorn, lightly salted','Popkorns, viegli sālīts','Попкорн, слегка солёный'],n:{kj:1600,sug:.5,sf:1.5,salt:.5,fib:13,pro:12},tg:['snack']},
+ {id:'ricecakes',s:'snacks',e:'🍘',sh:'bag',c:'#efe2c4',nm:['Rice cakes','Rīsu galetes','Рисовые хлебцы'],n:{kj:1600,sug:.5,salt:.3,fib:4,pro:8},tg:['snack']},
+ {id:'peanuts',s:'snacks',e:'🥜',sh:'bag',c:'#d99a4e',cat:'fat',nm:['Salted peanuts','Sālīti zemesrieksti','Солёный арахис'],n:{fat:50,sf:7,sug:5,salt:1.5,fib:8,pro:25,fvl:100},tg:['snack']},
+ {id:'apricots',s:'snacks',e:'🍑',sh:'bag',c:'#f39a3d',nm:['Dried apricots','Žāvētas aprikozes','Курага'],n:{kj:1000,sug:53,fib:7,pro:3.4,fvl:100},tg:['snack','dessert']},
+ {id:'chips',s:'snacks',e:'🍟',sh:'bag',c:'#f2c12e',nm:['Potato crisps','Kartupeļu čipsi','Картофельные чипсы'],n:{kj:2200,sug:.5,sf:3,salt:1.4,fib:4.5,pro:6},tg:['snack']},
+ {id:'gummies',s:'snacks',e:'🐻',sh:'bag',c:'#ff6fa5',nm:['Gummy bears','Želejas lācīši','Мармеладные мишки'],n:{kj:1450,sug:46,pro:6},tg:['snack','sweet']},
+ {id:'icecream',s:'snacks',e:'🍦',sh:'box',c:'#f7e7b6',nm:['Vanilla ice cream','Vaniļas saldējums','Ванильное мороженое'],n:{kj:900,sug:22,sf:7,salt:.1,pro:3.5},tg:['dessert','sweet']},
+ {id:'cookies',s:'snacks',e:'🍪',sh:'box',c:'#c47a3a',nm:['Chocolate chip cookies','Cepumi ar šokolādi','Печенье с шоколадом'],n:{kj:2000,sug:30,sf:10,salt:.7,fib:2,pro:6},tg:['snack','sweet']},
+ {id:'chocolate',s:'snacks',e:'🍫',sh:'box',c:'#6b3a1e',nm:['Milk chocolate','Piena šokolāde','Молочный шоколад'],n:{kj:2250,sug:55,sf:18,salt:.2,fib:2,pro:7},tg:['snack','sweet']}
+];
+
+// Quests: slots name the tags a product must have and the worst letter allowed.
+const QUESTS=[
+ {id:'salad',e:'🥗',title:['Rainbow fruit salad','Varavīksnes augļu salāti','Радужный фруктовый салат'],
+  slots:[{tags:['fruit'],max:'A',count:3,e:'🍎',lbl:['Fruit','Auglis','Фрукт']},
+         {tags:['yogurt','quark'],max:'B',e:'🥣',lbl:['Yogurt or quark','Jogurts vai biezpiens','Йогурт или творог']}]},
+ {id:'sandwich',e:'🥪',title:['Super sandwiches','Superbuterbrodi','Супербутерброды'],
+  slots:[{tags:['bread'],max:'B',e:'🍞',lbl:['Bread','Maize','Хлеб']},
+         {tags:['coldcut','fish','egg'],max:'B',e:'🐟',lbl:['Filling: fish, egg or slices','Pildījums: zivs, ola vai šķēles','Начинка: рыба, яйцо или нарезка']},
+         {tags:['veg'],max:'A',count:2,e:'🥒',lbl:['Vegetable','Dārzenis','Овощ']}]},
+ {id:'breakfast',e:'🍳',title:['Family breakfast','Ģimenes brokastis','Семейный завтрак'],
+  slots:[{tags:['cereal'],max:'A',e:'🥣',lbl:['Cereal','Pārslas','Хлопья']},
+         {tags:['milk','yogurt','quark'],max:'B',e:'🥛',lbl:['Milk, kefir or yogurt','Piens, kefīrs vai jogurts','Молоко, кефир или йогурт']},
+         {tags:['fruit'],max:'A',e:'🍌',lbl:['Fruit','Auglis','Фрукт']},
+         {tags:['drink'],max:'B',e:'💧',lbl:['Drink','Dzēriens','Напиток']}]},
+ {id:'pizza',e:'🍕',title:['Pizza night','Picas vakars','Вечер пиццы'],
+  slots:[{tags:['dough'],max:'B',e:'🍕',lbl:['Pizza dough','Picas mīkla','Тесто для пиццы']},
+         {tags:['sauce'],max:'A',e:'🍅',lbl:['Sauce','Mērce','Соус']},
+         {tags:['cheese'],max:'C',e:'🧀',lbl:['Cheese','Siers','Сыр']},
+         {tags:['veg'],max:'A',count:2,e:'🥦',lbl:['Topping vegetable','Dārzenis piedevām','Овощ для начинки']},
+         {tags:['sweet','dessert'],max:'E',treat:true,e:'🍦',lbl:['One treat','Viens gardums','Одно лакомство']}]},
+ {id:'party',e:'🎉',title:['Birthday party','Dzimšanas dienas ballīte','День рождения'],
+  slots:[{tags:['drink'],max:'B',count:2,e:'💧',lbl:['Drink','Dzēriens','Напиток']},
+         {tags:['snack'],max:'B',count:2,e:'🍿',lbl:['Snack','Uzkoda','Снек']},
+         {tags:['fruit'],max:'A',e:'🍇',lbl:['Fruit','Auglis','Фрукт']},
+         {tags:['sweet','dessert'],max:'E',treat:true,e:'🍪',lbl:['One treat','Viens gardums','Одно лакомство']}]},
+ {id:'dinner',e:'🍽️',title:['Grand family dinner','Lielās ģimenes vakariņas','Большой семейный ужин'],
+  slots:[{tags:['protein'],max:'A',e:'🍗',lbl:['Protein: meat, fish, eggs or beans','Olbaltumvielas: gaļa, zivs, olas vai pākšaugi','Белок: мясо, рыба, яйца или бобовые']},
+         {tags:['side'],max:'A',e:'🍚',lbl:['Side: pasta, rice or potatoes','Piedeva: makaroni, rīsi vai kartupeļi','Гарнир: макароны, рис или картофель']},
+         {tags:['veg'],max:'A',count:2,e:'🥕',lbl:['Vegetable','Dārzenis','Овощ']},
+         {tags:['fat'],max:'B',e:'🌼',lbl:['Oil or fat','Eļļa vai tauki','Масло или жир']},
+         {tags:['drink'],max:'B',e:'💧',lbl:['Drink','Dzēriens','Напиток']},
+         {tags:['dessert'],max:'C',e:'🍮',lbl:['Dessert','Deserts','Десерт']}]}
+];
+//</DATA>
+
+/* ======================= TEXT ======================= */
+const LI={en:0,lv:1,ru:2};
+const T={
+en:{
+ game:"Spike's Nutri Quest", spike:'Spike',
+ tag:'Help Spike the porcupine chef shop for six home cooking projects, and learn to read the Nutri-Score letters from A to E.',
+ play:'Play', cont:'Continue', newGame:'Start over', next:'Next ▸', go:"Let's go!",
+ points:'Points', found:'Letters found', quest:'Quest', of:'of',
+ orBetter:'{g} or better', onlyA:'A only', anyGrade:'any letter',
+ look:'Look closer (E)', talk:'Talk to Spike (E)', talkReady:'Show Spike your basket (E)',
+ guessQ:'Guess the Nutri-Score!', guessHint:'Lots of sugar, salt or fat pushes the letter down. Fibre, protein and fruit or veg push it up.',
+ per100g:'per 100 g', per100ml:'per 100 ml',
+ energy:'Energy', sugar:'Sugars', satfat:'Saturated fat', salt:'Salt', fiber:'Fibre', protein:'Protein', fvl:'Fruit, veg & nuts', fat:'Fat', sweet:'Sweeteners', yes:'yes',
+ badPts:'not-so-good', goodPts:'good', scoreW:'score',
+ right:'Spot on! +10', close:'So close! +5', wrongG:'Nice try! It is a {g}.', seen:'You already know this one: {g}',
+ why:'Biggest minus: {bad}. Biggest plus: {good}.', whyNoGood:'Biggest minus: {bad}. No plus points here.', whyNoBad:'No minus points at all!',
+ water:'Water is the only drink that gets an A!',
+ noteFat:'Oils, nuts and butter have special rules for fat.', noteCheese:'In cheese, protein always counts.', noteDrink:'Drinks have stricter rules than food.',
+ noteProtein:'Protein does not count here: too many not-so-good points.',
+ add:'Put in basket', back:'Put back', close2:'Close',
+ notNeeded:"That's not on today's list. Maybe next time!", full:'We already have enough of that. Look at what is still missing on the list!',
+ tooLow:'{name} is a {g}. We need {need} or better. Look for a greener letter on the same shelf!',
+ added:'Great pick! {name} ({g}) is in the basket. +20',
+ dupe:'{name} is already in the basket. Try a different one!',
+ basketDone:'Basket complete! Bring it to Spike at the kitchen.',
+ hintOn:'Follow the stars ★ to the shelves you need!',
+ more:'{n} more to find! I lit up the shelves you need with stars ★.',
+ peek:'Let me peek in your basket…', yay:'Wonderful! Everything we need. You are a natural!',
+ done:'Quest complete!', s1:'Finished the list', s2:'No wrong picks', s3:'Good letter guesser', nextQ:'Next quest', finish:'Finish',
+ finalT:'You are a Nutri-Master!', again:'Play again',
+ finalText:'You finished all six quests with {s} of 18 stars and {p} points.',
+ help:'How to play',
+ h1:'Walk with the arrow keys or W A S D, or tap the floor.',
+ h2:'Press E, or tap a product, to look closer and guess its letter.',
+ h3:'Put the right products in your basket. The list shows which letter each one needs.',
+ h4:'Stuck? Press ★ or talk to Spike: the shelves you need light up.',
+ hScale:'A (dark green) is the healthiest choice. E (red) is for small amounts now and then.',
+ sound:'Sound', lang:'Language', hint:'Hint'
+},
+lv:{
+ game:'Adatiņa Nutri misija', spike:'Adatiņš',
+ tag:'Palīdzi dzeloņcūkai pavāram Adatiņam iepirkties sešiem mājas ēdienu projektiem un iemācies lasīt Nutri-Score burtus no A līdz E.',
+ play:'Spēlēt', cont:'Turpināt', newGame:'Sākt no jauna', next:'Tālāk ▸', go:'Aiziet!',
+ points:'Punkti', found:'Atrasti burti', quest:'Misija', of:'no',
+ orBetter:'{g} vai labāk', onlyA:'tikai A', anyGrade:'jebkurš burts',
+ look:'Apskatīt (E)', talk:'Runāt ar Adatiņu (E)', talkReady:'Parādi Adatiņam grozu (E)',
+ guessQ:'Uzmini Nutri-Score!', guessHint:'Daudz cukura, sāls vai tauku burtu pasliktina. Šķiedrvielas, olbaltumvielas, augļi un dārzeņi to uzlabo.',
+ per100g:'uz 100 g', per100ml:'uz 100 ml',
+ energy:'Enerģija', sugar:'Cukuri', satfat:'Piesātinātie tauki', salt:'Sāls', fiber:'Šķiedrvielas', protein:'Olbaltumvielas', fvl:'Augļi, dārzeņi un rieksti', fat:'Tauki', sweet:'Saldinātāji', yes:'jā',
+ badPts:'mazāk labie', goodPts:'labie', scoreW:'rezultāts',
+ right:'Precīzi! +10', close:'Gandrīz! +5', wrongG:'Labs mēģinājums! Tas ir {g}.', seen:'Šo tu jau zini: {g}',
+ why:'Lielākais mīnuss: {bad}. Lielākais pluss: {good}.', whyNoGood:'Lielākais mīnuss: {bad}. Plusu nav.', whyNoBad:'Nav neviena mīnusa punkta!',
+ water:'Ūdens ir vienīgais dzēriens, kas saņem A!',
+ noteFat:'Eļļām, riekstiem un sviestam taukiem ir īpaši noteikumi.', noteCheese:'Sieram olbaltumvielas skaitās vienmēr.', noteDrink:'Dzērieniem noteikumi ir stingrāki nekā ēdienam.',
+ noteProtein:'Olbaltumvielas šeit neskaitās: par daudz mazāk labo punktu.',
+ add:'Likt grozā', back:'Nolikt atpakaļ', close2:'Aizvērt',
+ notNeeded:'Tā šodien nav sarakstā. Varbūt nākamreiz!', full:'Tā mums jau pietiek. Paskaties, kas vēl trūkst sarakstā!',
+ tooLow:'{name}: burts {g}. Mums vajag {need} vai labāk. Meklē zaļāku burtu tajā pašā plauktā!',
+ added:'Lieliska izvēle! {name} ({g}) ir grozā. +20',
+ dupe:'{name} jau ir grozā. Pamēģini ko citu!',
+ basketDone:'Grozs pilns! Nes to Adatiņam uz virtuvi.',
+ hintOn:'Seko zvaigznēm ★ līdz vajadzīgajiem plauktiem!',
+ more:'Vēl jāatrod: {n}! Es iededzu zvaigznes ★ virs vajadzīgajiem plauktiem.',
+ peek:'Paskatīšos tavā grozā…', yay:'Brīnišķīgi! Viss, kas vajadzīgs. Tev tas padodas!',
+ done:'Misija paveikta!', s1:'Saraksts izpildīts', s2:'Bez kļūdām', s3:'Labs burtu minētājs', nextQ:'Nākamā misija', finish:'Pabeigt',
+ finalT:'Tu esi Nutri meistars!', again:'Spēlēt vēlreiz',
+ finalText:'Tu pabeidzi visas sešas misijas ar {s} no 18 zvaigznēm un {p} punktiem.',
+ help:'Kā spēlēt',
+ h1:'Staigā ar bultiņām vai W A S D, vai pieskaries grīdai.',
+ h2:'Nospied E vai pieskaries produktam, lai to apskatītu un uzminētu burtu.',
+ h3:'Liec grozā pareizos produktus. Sarakstā redzams, kāds burts katram vajadzīgs.',
+ h4:'Nezini, kur iet? Nospied ★ vai runā ar Adatiņu: vajadzīgie plaukti iedegsies.',
+ hScale:'A (tumši zaļš) ir veselīgākā izvēle. E (sarkans) ir mazām porcijām un reizēm.',
+ sound:'Skaņa', lang:'Valoda', hint:'Padoms'
+},
+ru:{
+ game:'Нутри-квест Колючкина', spike:'Колючкин',
+ tag:'Помоги дикобразу-повару Колючкину сделать покупки для шести домашних блюд и научись читать буквы Nutri-Score от A до E.',
+ play:'Играть', cont:'Продолжить', newGame:'Начать заново', next:'Дальше ▸', go:'Вперёд!',
+ points:'Очки', found:'Найдено букв', quest:'Задание', of:'из',
+ orBetter:'{g} или лучше', onlyA:'только A', anyGrade:'любая буква',
+ look:'Рассмотреть (E)', talk:'Поговорить с Колючкиным (E)', talkReady:'Покажи Колючкину корзину (E)',
+ guessQ:'Угадай Nutri-Score!', guessHint:'Много сахара, соли или жира делают букву хуже. Клетчатка, белок, фрукты и овощи делают её лучше.',
+ per100g:'на 100 г', per100ml:'на 100 мл',
+ energy:'Энергия', sugar:'Сахара', satfat:'Насыщенные жиры', salt:'Соль', fiber:'Клетчатка', protein:'Белки', fvl:'Фрукты, овощи и орехи', fat:'Жиры', sweet:'Подсластители', yes:'да',
+ badPts:'не очень полезные', goodPts:'полезные', scoreW:'итог',
+ right:'В точку! +10', close:'Почти! +5', wrongG:'Хорошая попытка! Это {g}.', seen:'Эту букву ты уже знаешь: {g}',
+ why:'Главный минус: {bad}. Главный плюс: {good}.', whyNoGood:'Главный минус: {bad}. Плюсов нет.', whyNoBad:'Ни одного минуса!',
+ water:'Вода — единственный напиток с буквой A!',
+ noteFat:'Для масел, орехов и сливочного масла особые правила по жирам.', noteCheese:'У сыра белок считается всегда.', noteDrink:'Для напитков правила строже, чем для еды.',
+ noteProtein:'Белок здесь не считается: слишком много не очень полезных баллов.',
+ add:'В корзину', back:'Положить обратно', close2:'Закрыть',
+ notNeeded:'Этого сегодня нет в списке. Может, в другой раз!', full:'Этого у нас уже хватает. Посмотри, чего ещё не хватает в списке!',
+ tooLow:'У продукта «{name}» буква {g}. Нужно {need} или лучше. Поищи букву зеленее на той же полке!',
+ added:'Отличный выбор! «{name}» ({g}) в корзине. +20',
+ dupe:'«{name}» уже в корзине. Попробуй что-нибудь другое!',
+ basketDone:'Корзина собрана! Неси её Колючкину на кухню.',
+ hintOn:'Иди за звёздочками ★ к нужным полкам!',
+ more:'Осталось найти: {n}! Я зажёг звёздочки ★ над нужными полками.',
+ peek:'Дай-ка загляну в корзину…', yay:'Чудесно! Всё, что нужно. У тебя талант!',
+ done:'Задание выполнено!', s1:'Список собран', s2:'Без ошибок', s3:'Отлично угадываешь буквы', nextQ:'Следующее задание', finish:'Завершить',
+ finalT:'Ты — Нутри-мастер!', again:'Играть снова',
+ finalText:'Ты прошёл все шесть заданий: {s} звёзд из 18 и {p} очков.',
+ help:'Как играть',
+ h1:'Ходи стрелками или W A S D, или просто нажми на пол.',
+ h2:'Нажми E или на продукт, чтобы рассмотреть его и угадать букву.',
+ h3:'Клади в корзину нужные продукты. В списке видно, какая буква нужна каждому.',
+ h4:'Не знаешь, куда идти? Нажми ★ или поговори с Колючкиным: нужные полки засветятся.',
+ hScale:'A (тёмно-зелёная) — самый полезный выбор. E (красная) — понемногу и изредка.',
+ sound:'Звук', lang:'Язык', hint:'Подсказка'
+}};
+
+// Spike's lessons. {scale:true} lines show the A–E strip.
+const LESSONS={
+ intro:{
+  en:[{t:"Hi there! I'm Spike, the porcupine chef of the ABCDE Market. My quills are sharp, and my shopping eye is even sharper!"},
+      {t:'See the letters on food packs? That is the Nutri-Score. It goes from A to E.',scale:'all'},
+      {t:'A, dark green, means: eat it often. E, red, means: just a little, now and then. B, C and D are in between.',scale:'A'},
+      {t:'Every shelf tag hides a letter. Look closer at a product, guess its letter, and I will tell you if you are right!'},
+      {t:'Walk with the arrow keys or W A S D, or tap the floor. Press E or tap a product to look closer.'}],
+  lv:[{t:'Sveiks! Es esmu Adatiņš, ABCDE tirgus dzeloņcūku pavārs. Manas adatas ir asas, bet acs iepirkšanās — vēl asāka!'},
+      {t:'Redzi burtus uz pārtikas iepakojumiem? Tas ir Nutri-Score. Tas iet no A līdz E.',scale:'all'},
+      {t:'Tumši zaļais A nozīmē: ēd bieži. Sarkanais E nozīmē: tikai mazliet un reizēm. B, C un D ir pa vidu.',scale:'A'},
+      {t:'Katrā plaukta cenu zīmē slēpjas burts. Apskati produktu, uzmini tā burtu, un es pateikšu, vai uzminēji!'},
+      {t:'Staigā ar bultiņām vai W A S D, vai pieskaries grīdai. Nospied E vai pieskaries produktam, lai to apskatītu.'}],
+  ru:[{t:'Привет! Я Колючкин, шеф-повар дикобраз из магазина ABCDE. Иголки у меня острые, а глаз на покупки ещё острее!'},
+      {t:'Видишь буквы на упаковках? Это Nutri-Score. Он бывает от A до E.',scale:'all'},
+      {t:'Тёмно-зелёная A значит: можно есть часто. Красная E значит: совсем немного и изредка. B, C и D — посередине.',scale:'A'},
+      {t:'На каждом ценнике спрятана буква. Рассмотри продукт, угадай букву, а я скажу, прав ли ты!'},
+      {t:'Ходи стрелками или W A S D, или просто нажми на пол. Нажми E или на продукт, чтобы рассмотреть его.'}]
+ },
+ salad:{
+  en:[{t:'First quest: a rainbow fruit salad!'},{t:'Find 3 different fruits with an A, and a plain yogurt or quark that is B or better. Fruit is in the crates by my kitchen. Dairy is in the fridges at the back.'}],
+  lv:[{t:'Pirmā misija: varavīksnes augļu salāti!'},{t:'Atrodi 3 dažādus augļus ar A un dabīgo jogurtu vai biezpienu ar B vai labāk. Augļi ir kastēs pie manas virtuves. Piena produkti ir ledusskapjos aizmugurē.'}],
+  ru:[{t:'Первое задание: радужный фруктовый салат!'},{t:'Найди 3 разных фрукта с буквой A и натуральный йогурт или творог на B или лучше. Фрукты — в ящиках у моей кухни. Молочное — в холодильниках у дальней стены.'}]
+ },
+ sandwich:{
+  en:[{t:'Sandwich time! Here is a secret: letters help you compare things on the SAME shelf.'},{t:'Two breads can look alike, but one is an A and the other is a C. Pick the greener one!',scale:'all'},{t:'We need bread (B or better), a filling (B or better) and two vegetables with an A.'}],
+  lv:[{t:'Buterbrodu laiks! Atklāšu noslēpumu: burti palīdz salīdzināt produktus TAJĀ PAŠĀ plauktā.'},{t:'Divas maizes var izskatīties līdzīgi, bet viena ir A, bet otra ir C. Izvēlies zaļāko!',scale:'all'},{t:'Mums vajag maizi (B vai labāk), pildījumu (B vai labāk) un divus dārzeņus ar A.'}],
+  ru:[{t:'Время бутербродов! Открою секрет: буквы помогают сравнивать продукты на ОДНОЙ полке.'},{t:'Два хлеба могут быть похожи, но у одного A, а у другого C. Выбирай тот, что зеленее!',scale:'all'},{t:'Нам нужен хлеб (B или лучше), начинка (B или лучше) и два овоща с буквой A.'}]
+ },
+ breakfast:{
+  en:[{t:'How does food get its letter? I count points, like in a game!'},{t:'Not-so-good points come from lots of energy, sugar, saturated fat and salt.'},{t:'Good points come from fibre, protein, and fruit, veg and nuts.'},{t:'Not-so-good minus good gives the score. The lower the score, the greener the letter! Watch the coloured chips when you look at a product.',scale:'all'},{t:'Breakfast for the whole family: a cereal with an A, milk, kefir or yogurt (B or better), a fruit with an A, and a drink that is B or better.'}],
+  lv:[{t:'Kā produkts iegūst savu burtu? Es skaitu punktus, gluži kā spēlē!'},{t:'Mazāk labos punktus dod daudz enerģijas, cukura, piesātināto tauku un sāls.'},{t:'Labos punktus dod šķiedrvielas, olbaltumvielas, augļi, dārzeņi un rieksti.'},{t:'Mazāk labie mīnus labie ir rezultāts. Jo mazāks rezultāts, jo zaļāks burts! Skaties krāsainos punktus, kad apskati produktu.',scale:'all'},{t:'Brokastis visai ģimenei: pārslas ar A, piens, kefīrs vai jogurts (B vai labāk), auglis ar A un dzēriens ar B vai labāk.'}],
+  ru:[{t:'Как продукт получает букву? Я считаю баллы, прямо как в игре!'},{t:'Не очень полезные баллы дают много энергии, сахара, насыщенных жиров и соли.'},{t:'Полезные баллы дают клетчатка, белок, фрукты, овощи и орехи.'},{t:'Не очень полезные минус полезные — это итог. Чем меньше итог, тем зеленее буква! Смотри на цветные баллы, когда рассматриваешь продукт.',scale:'all'},{t:'Завтрак для всей семьи: хлопья с буквой A, молоко, кефир или йогурт (B или лучше), фрукт с A и напиток на B или лучше.'}]
+ },
+ pizza:{
+  en:[{t:'Pizza night! Something important: no food is forbidden.'},{t:'D and E foods are fine as a treat, just not every day. Today you may pick ONE treat with any letter for dessert!',scale:'E'},{t:'We also need pizza dough (B or better), a sauce with an A, cheese (C or better) and two A vegetables for toppings.'}],
+  lv:[{t:'Picas vakars! Svarīga lieta: neviens ēdiens nav aizliegts.'},{t:'D un E produkti der kā gardums, tikai ne katru dienu. Šodien desertam drīksti izvēlēties VIENU gardumu ar jebkuru burtu!',scale:'E'},{t:'Vēl vajag picas mīklu (B vai labāk), mērci ar A, sieru (C vai labāk) un divus dārzeņus ar A piedevām.'}],
+  ru:[{t:'Вечер пиццы! Важная вещь: запрещённой еды не бывает.'},{t:'Продукты на D и E — это лакомство, просто не на каждый день. Сегодня на десерт можно взять ОДНО лакомство с любой буквой!',scale:'E'},{t:'Ещё нужно тесто для пиццы (B или лучше), соус с A, сыр (C или лучше) и два овоща с A для начинки.'}]
+ },
+ party:{
+  en:[{t:'Party time! Let us talk about drinks. Only water gets an A. Sweet drinks often get a D or an E.',scale:'A'},{t:'Even 100% juice has lots of natural sugar, so it cannot be an A.'},{t:'We need 2 drinks (B or better), 2 snacks (B or better), a fruit with an A, and one treat.'}],
+  lv:[{t:'Ballītes laiks! Parunāsim par dzērieniem. A saņem tikai ūdens. Saldie dzērieni bieži saņem D vai E.',scale:'A'},{t:'Pat 100% sulā ir daudz dabīgā cukura, tāpēc tā nevar būt A.'},{t:'Mums vajag 2 dzērienus (B vai labāk), 2 uzkodas (B vai labāk), augli ar A un vienu gardumu.'}],
+  ru:[{t:'Праздник! Поговорим о напитках. Букву A получает только вода. Сладкие напитки часто получают D или E.',scale:'A'},{t:'Даже в соке 100% много природного сахара, поэтому у него не может быть A.'},{t:'Нужно 2 напитка (B или лучше), 2 снека (B или лучше), фрукт с A и одно лакомство.'}]
+ },
+ dinner:{
+  en:[{t:'The grand family dinner! Time to use everything you have learned.'},{t:'A protein with an A, a side with an A, two A vegetables, oil or fat that is B or better, a drink that is B or better, and a dessert that is C or better.'},{t:'I believe in you, chef!'}],
+  lv:[{t:'Lielās ģimenes vakariņas! Laiks izmantot visu, ko esi iemācījies.'},{t:'Olbaltumvielu produkts ar A, piedeva ar A, divi dārzeņi ar A, eļļa vai tauki ar B vai labāk, dzēriens ar B vai labāk un deserts ar C vai labāk.'},{t:'Es tev ticu, pavār!'}],
+  ru:[{t:'Большой семейный ужин! Пора применить всё, чему ты научился.'},{t:'Белковый продукт с A, гарнир с A, два овоща с A, масло или жир на B или лучше, напиток на B или лучше и десерт на C или лучше.'},{t:'Я в тебя верю, шеф!'}]
+ },
+ final:{
+  en:[{t:'You did it! You are a real Nutri-Master!'},{t:'Next time you shop with your family, look for the letters and help pick the greener ones.'},{t:'And remember: treats are for now and then, and water is the champion drink!'}],
+  lv:[{t:'Tev izdevās! Tu esi īsts Nutri meistars!'},{t:'Nākamreiz, kad iepērcies ar ģimeni, meklē burtus un palīdzi izvēlēties zaļākos.'},{t:'Un atceries: gardumi ir reizēm, un ūdens ir dzērienu čempions!'}],
+  ru:[{t:'У тебя получилось! Ты настоящий Нутри-мастер!'},{t:'Когда пойдёшь в магазин с семьёй, ищи буквы и помогай выбирать те, что зеленее.'},{t:'И помни: лакомства — иногда, а вода — чемпион среди напитков!'}]
+ }
+};
+
+let lang='en';
+function t(k,v){let s=(T[lang]&&T[lang][k]!=null)?T[lang][k]:(T.en[k]!=null?T.en[k]:k);if(v)for(const x in v)s=s.split('{'+x+'}').join(v[x]);return s;}
+function L(a){return Array.isArray(a)?a[LI[lang]]:a;}
+const PBY={};PRODUCTS.forEach(p=>{PBY[p.id]=p;p.ns=nutri(p);});
+const SBY={};SECTIONS.forEach(s=>SBY[s.id]=s);
+const RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ======================= STATE ======================= */
+const SKEY='spike-nutri-quest-v1';
+function freshState(){return {v:1,lang:lang,q:0,introDone:false,filled:[],score:0,stars:[],discovered:{},mistakes:0,gR:0,gT:0,finished:false,qStartScore:0};}
+let S=null;
+function load(){try{const s=JSON.parse(localStorage.getItem(SKEY)||'null');if(s&&s.v===1)return s;}catch(e){}return null;}
+function save(){try{localStorage.setItem(SKEY,JSON.stringify(S));}catch(e){}}
+(function initLang(){
+  const saved=load();
+  const nav=(navigator.language||'en').toLowerCase();
+  lang=saved&&saved.lang?saved.lang:(nav.startsWith('lv')?'lv':nav.startsWith('ru')?'ru':'en');
+  S=saved||freshState();
+  S.lang=lang;
+})();
+function slotsOf(qi){const out=[];QUESTS[qi].slots.forEach(d=>{for(let i=0;i<(d.count||1);i++)out.push(d);});return out;}
+function curSlots(){return slotsOf(S.q);}
+function ensureFilled(){const n=curSlots().length;if(!Array.isArray(S.filled)||S.filled.length!==n)S.filled=new Array(n).fill(null);}
+ensureFilled();
+function remaining(){return S.filled.filter(x=>!x).length;}
+function basketDone(){return S.filled.length>0&&remaining()===0;}
+
+/* ======================= AUDIO ======================= */
+let actx=null,soundOn=true;
+function ensureAudio(){if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){actx=null;}}if(actx&&actx.state==='suspended')actx.resume();}
+function tone(f,d,type,v,when,slide){if(!actx||!soundOn)return;const t0=actx.currentTime+(when||0);const o=actx.createOscillator(),g=actx.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t0);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,f*slide),t0+d);g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(v||.1,t0+.012);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(actx.destination);o.start(t0);o.stop(t0+d+.03);}
+const SFX={
+ talk(){tone(420+Math.random()*320,.05,'triangle',.05);},
+ open(){tone(523,.08,'triangle',.09);tone(784,.1,'triangle',.09,.06);},
+ right(){[523,659,784,1046].forEach((f,i)=>tone(f,.15,'triangle',.11,i*.07));},
+ close(){tone(523,.1,'triangle',.09);tone(659,.15,'triangle',.09,.08);},
+ miss(){tone(330,.15,'triangle',.08,0,.8);tone(262,.2,'triangle',.07,.12,.8);},
+ wrong(){tone(220,.18,'sawtooth',.05,0,.7);tone(180,.24,'sawtooth',.045,.13,.7);},
+ add(){tone(660,.08,'square',.05);tone(990,.12,'square',.05,.07);tone(1320,.14,'square',.04,.14);},
+ fanfare(){const n=[523,659,784,1046,784,1046,1318];n.forEach((f,i)=>{tone(f,.22,'triangle',.12,i*.12);tone(f/2,.22,'sine',.07,i*.12);});},
+ step(){tone(120+Math.random()*40,.035,'sine',.025);},
+ hint(){tone(1046,.1,'sine',.07);tone(1318,.12,'sine',.07,.08);tone(1568,.16,'sine',.07,.16);}
+};
+
+/* ======================= DOM HELPERS ======================= */
+const $=id=>document.getElementById(id);
+function spikeFace(){
+  // Small porcupine portrait: quill fan, face, chef hat.
+  let q='';const cx=50,cy=60;
+  for(let i=0;i<=16;i++){const a=Math.PI*(1+i/16);const a1=a-.09,a2=a+.09;const r1=30,r2=48;
+    q+=`<polygon points="${cx+r1*Math.cos(a1)},${cy+r1*Math.sin(a1)} ${cx+r2*Math.cos(a)},${cy+r2*Math.sin(a)} ${cx+r1*Math.cos(a2)},${cy+r1*Math.sin(a2)}" fill="${i%2?'#5b3520':'#f1dfc0'}"/>`;}
+  return `<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">${q}
+  <ellipse cx="50" cy="64" rx="30" ry="27" fill="#8a5a3b"/><ellipse cx="50" cy="70" rx="21" ry="19" fill="#e7c9a0"/>
+  <circle cx="41" cy="63" r="5" fill="#fff"/><circle cx="59" cy="63" r="5" fill="#fff"/><circle cx="42" cy="64" r="3" fill="#1d2340"/><circle cx="60" cy="64" r="3" fill="#1d2340"/>
+  <ellipse cx="50" cy="74" rx="5" ry="3.6" fill="#1d2340"/><path d="M43 80 Q50 86 57 80" stroke="#1d2340" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <circle cx="36" cy="73" r="3.2" fill="#f4a3a3" opacity=".8"/><circle cx="64" cy="73" r="3.2" fill="#f4a3a3" opacity=".8"/>
+  <rect x="35" y="26" width="30" height="12" rx="3" fill="#fff" stroke="#1d2340" stroke-width="2"/>
+  <circle cx="39" cy="22" r="8" fill="#fff" stroke="#1d2340" stroke-width="2"/><circle cx="50" cy="17" r="10" fill="#fff" stroke="#1d2340" stroke-width="2"/><circle cx="61" cy="22" r="8" fill="#fff" stroke="#1d2340" stroke-width="2"/>
+  <rect x="36" y="25" width="28" height="6" fill="#fff"/></svg>`;
+}
+document.querySelectorAll('.face').forEach(el=>el.innerHTML=spikeFace());
+function stripHTML(sel){return '<span class="lbl">NUTRI-SCORE</span>'+NS.map(g=>`<span class="${g}${sel===g?' on':''}">${g}</span>`).join('');}
+function needHTML(max){if(max==='E')return `<i class="mini any"></i>${t('anyGrade')}`;if(max==='A')return `<i class="mini A">A</i>${t('onlyA')}`;return `<i class="mini ${max}">${max}</i>${t('orBetter',{g:''}).trim()}`;}
+
+let toastTimer=0;
+function toast(msg,kind,ms){const el=$('toast');$('toastText').textContent=msg;el.className='toast panel'+(kind?' '+kind:'');el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.hidden=true;},ms||3800);}
+function popPoints(txt,x,y){const el=document.createElement('div');el.className='pop';el.textContent=txt;const r=$('scorePill').getBoundingClientRect();el.style.left=(x!=null?x:r.left)+'px';el.style.top=(y!=null?y:r.bottom+4)+'px';$('app').appendChild(el);setTimeout(()=>el.remove(),1200);}
+function addScore(n,x,y){S.score+=n;renderTop();popPoints('+'+n,x,y);save();}
+
+/* ======================= THREE: SCENE ======================= */
+const stage=$('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color('#bfe6f7');
+const camera=new THREE.PerspectiveCamera(45,1,.1,200);
+scene.add(new THREE.HemisphereLight('#ffffff','#9fb0c8',.85));
+const sun=new THREE.DirectionalLight('#fff3df',.65);
+sun.position.set(8,22,14);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-24,right:24,top:22,bottom:-22,near:1,far:60});
+scene.add(sun);
+
+function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');draw(g,w,h);const tx=new THREE.CanvasTexture(c);tx.anisotropy=4;return tx;}
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+const EMOJI_FONT='"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla",sans-serif';
+function emojiTex(e,bg){return canvasTex(128,128,(g,w,h)=>{g.fillStyle=bg||'#ffffff';rr(g,6,6,w-12,h-12,22);g.fill();g.lineWidth=6;g.strokeStyle='#1d2340';g.stroke();g.font='80px '+EMOJI_FONT;g.textAlign='center';g.textBaseline='middle';g.fillText(e,w/2,h/2+5);});}
+const mats={};
+function lam(c,extra){const k=c+(extra?JSON.stringify(extra):'');if(!mats[k])mats[k]=new THREE.MeshLambertMaterial(Object.assign({color:c},extra||{}));return mats[k];}
+
+// Floor
+const floorTex=canvasTex(256,256,(g)=>{g.fillStyle='#f4f8fb';g.fillRect(0,0,256,256);g.fillStyle='#d9efe6';g.fillRect(0,0,128,128);g.fillRect(128,128,128,128);});
+floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;floorTex.repeat.set(10,9);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,36),new THREE.MeshLambertMaterial({map:floorTex}));
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+// Outside ground
+const outside=new THREE.Mesh(new THREE.PlaneGeometry(140,140),lam('#9ad18b'));outside.rotation.x=-Math.PI/2;outside.position.y=-.02;scene.add(outside);
+
+// Walls
+const WALL_H=5;
+function box(w,h,d,mat,x,y,z,parent){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);(parent||scene).add(m);return m;}
+const wallMat=lam('#f7fbff'),stripeMat=lam('#2b6cf2');
+box(40.6,WALL_H,.3,wallMat,0,WALL_H/2,-18.15);
+box(.3,WALL_H,36.6,wallMat,-20.15,WALL_H/2,0);
+box(.3,WALL_H,36.6,wallMat,20.15,WALL_H/2,0);
+box(17,1.2,.3,wallMat,-11.5,.6,18.15);box(17,1.2,.3,wallMat,11.5,.6,18.15);
+box(40.6,.35,.32,stripeMat,0,1.4,-17.98);
+box(.32,.35,36.6,stripeMat,-19.98,1.4,0);box(.32,.35,36.6,stripeMat,19.98,1.4,0);
+// Sliding doors
+const doorMat=new THREE.MeshLambertMaterial({color:'#9fd3f0',transparent:true,opacity:.45});
+const doorL=box(3,2.6,.08,doorMat,-1.5,1.3,18.05),doorR=box(3,2.6,.08,doorMat,1.5,1.3,18.05);
+
+// Big ABCDE sign on the back wall
+let bigSignMesh=null;
+function buildBigSign(){
+  const tex=canvasTex(1024,160,(g,w,h)=>{g.fillStyle='#1d2340';rr(g,4,4,w-8,h-8,30);g.fill();
+    const cols=[NSC.A,NSC.B,NSC.C,NSC.D,NSC.E];NS.forEach((L2,i)=>{const x=40+i*104;g.fillStyle=cols[i];rr(g,x,22,94,116,20);g.fill();g.fillStyle=i===2?'#1d2340':'#fff';g.font='900 92px Rubik, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(L2,x+47,84);});
+    g.fillStyle='#fff';g.font='900 76px Rubik, sans-serif';g.textAlign='left';g.fillText(['MARKET','TIRGUS','МАРКЕТ'][LI[lang]],590,86);});
+  if(!bigSignMesh){bigSignMesh=new THREE.Mesh(new THREE.PlaneGeometry(14,2.2),new THREE.MeshBasicMaterial({map:tex}));bigSignMesh.position.set(0,4.1,-17.95);scene.add(bigSignMesh);}
+  else{bigSignMesh.material.map.dispose();bigSignMesh.material.map=tex;bigSignMesh.material.needsUpdate=true;}
+}
+
+/* ---------- Store fixtures and products ---------- */
+const BOXES=[]; // collision boxes {x0,x1,z0,z1}
+const SLOTS=[]; // interactable product slots
+const tagTex={};
+function makeTagTex(k){return canvasTex(96,64,(g,w,h)=>{const known=k!=='?';g.fillStyle=known?NSC[k]:'#ffffff';rr(g,3,3,w-6,h-6,12);g.fill();g.lineWidth=5;g.strokeStyle='#1d2340';g.stroke();g.fillStyle=known&&k!=='C'?'#fff':'#1d2340';g.font='900 46px Rubik, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(k,w/2,h/2+2);});}
+['?'].concat(NS).forEach(k=>tagTex[k]=makeTagTex(k));
+const signMeshes=[];
+function signTex(sec){return canvasTex(512,128,(g,w,h)=>{g.fillStyle=sec.col;rr(g,4,4,w-8,h-8,26);g.fill();g.lineWidth=8;g.strokeStyle='#1d2340';g.stroke();g.font='64px '+EMOJI_FONT;g.textBaseline='middle';g.textAlign='center';g.fillText(sec.e,62,h/2+4);
+  g.fillStyle='#fff';g.textAlign='left';let size=50;const label=L(sec.nm);g.font=`900 ${size}px Rubik, sans-serif`;while(g.measureText(label).width>360&&size>24){size-=2;g.font=`900 ${size}px Rubik, sans-serif`;}g.fillText(label,118,h/2+3);});}
+
+const geo={
+  box:new THREE.BoxGeometry(.34,.5,.14),loaf:new THREE.BoxGeometry(.4,.22,.26),bag:new THREE.BoxGeometry(.36,.4,.16),
+  carton:new THREE.BoxGeometry(.22,.42,.22),tray:new THREE.BoxGeometry(.4,.1,.3),
+  bottle:new THREE.CylinderGeometry(.08,.09,.42,14),neck:new THREE.CylinderGeometry(.035,.07,.1,10),cap:new THREE.CylinderGeometry(.04,.04,.04,10),
+  jar:new THREE.CylinderGeometry(.12,.12,.2,16),lid:new THREE.CylinderGeometry(.125,.125,.05,16),can:new THREE.CylinderGeometry(.1,.1,.17,16),
+  label:new THREE.PlaneGeometry(.17,.17),fruit:new THREE.SphereGeometry(.11,12,10),crate:new THREE.BoxGeometry(.95,.28,.7)
+};
+function packMesh(p,labelMat){
+  const g=new THREE.Group();const body=lam(p.c);
+  const boxy={box:1,loaf:1,bag:1,carton:1,tray:1}[p.sh];
+  if(boxy){const gg=geo[p.sh];const m=[body,body,p.sh==='tray'?labelMat:body,body,labelMat,body];const mesh=new THREE.Mesh(gg,m);gg.computeBoundingBox();mesh.position.y=(gg.parameters.height)/2;g.add(mesh);}
+  else if(p.sh==='bottle'){const b=new THREE.Mesh(geo.bottle,body);b.position.y=.21;g.add(b);const n=new THREE.Mesh(geo.neck,body);n.position.y=.47;g.add(n);const c=new THREE.Mesh(geo.cap,lam('#1d2340'));c.position.y=.54;g.add(c);const l=new THREE.Mesh(geo.label,labelMat);l.position.set(0,.22,.092);g.add(l);}
+  else if(p.sh==='jar'){const b=new THREE.Mesh(geo.jar,body);b.position.y=.1;g.add(b);const c=new THREE.Mesh(geo.lid,lam('#1d2340'));c.position.y=.225;g.add(c);const l=new THREE.Mesh(geo.label,labelMat);l.scale.setScalar(.95);l.position.set(0,.1,.122);g.add(l);}
+  else if(p.sh==='can'){const b=new THREE.Mesh(geo.can,body);b.position.y=.085;g.add(b);const l=new THREE.Mesh(geo.label,labelMat);l.scale.setScalar(.9);l.position.set(0,.085,.102);g.add(l);}
+  return g;
+}
+function buildStore(){
+  SECTIONS.forEach(sec=>{
+    const list=PRODUCTS.filter(p=>p.s===sec.id);
+    const grp=new THREE.Group();grp.position.set(sec.x,0,sec.z);scene.add(grp);
+    const half=sec.len/2;
+    BOXES.push({x0:sec.x-half-.05,x1:sec.x+half+.05,z0:sec.z-.65,z1:sec.z+.65});
+    const trim=lam(sec.col);
+    if(sec.kind==='crates'){
+      box(sec.len,.55,1.2,lam('#c99a63'),0,.275,0,grp);
+      box(sec.len+.1,.06,1.3,trim,0,.58,0,grp);
+    }else{
+      const fridge=sec.kind==='fridge';
+      box(sec.len,.42,1.2,trim,0,.21,0,grp);
+      const backMat=fridge?new THREE.MeshLambertMaterial({color:'#e4f4ff',emissive:'#9fd3f0',emissiveIntensity:.35}):lam('#f2f5fb');
+      box(sec.len,2.1,.1,backMat,0,1.05+.0,-.55,grp);
+      [.48,1.28].forEach(y=>box(sec.len,.05,1.15,lam('#dfe6f2'),0,y,0,grp));
+      box(sec.len,.12,1.2,trim,0,2.12,0,grp);
+      box(.08,2.1,1.2,trim,-half,1.05,0,grp);box(.08,2.1,1.2,trim,half,1.05,0,grp);
+      if(fridge)box(sec.len-.2,.08,.08,new THREE.MeshBasicMaterial({color:'#ffffff'}),0,2.02,.5,grp);
+    }
+    // sign
+    const sm=new THREE.Mesh(new THREE.PlaneGeometry(4.2,1.05),new THREE.MeshBasicMaterial({map:signTex(sec),transparent:true}));
+    sm.position.set(sec.x,sec.kind==='crates'?2.3:2.85,sec.z+(sec.kind==='crates'?-.3:.1));sm.rotation.x=-.12;scene.add(sm);signMeshes.push({mesh:sm,sec});
+    if(sec.kind==='crates'){const pole=box(.08,1.8,.08,lam('#1d2340'),sec.x,.9+.55,sec.z-.3);pole.castShadow=false;}
+    // product slots
+    const n=list.length;
+    list.forEach((p,i)=>{
+      const x=sec.x-half+(i+.5)*sec.len/n;
+      const labelMat=new THREE.MeshLambertMaterial({map:emojiTex(p.e,'#ffffff')});
+      const disp=new THREE.Group();let baseY,tagPos;
+      if(sec.kind==='crates'){
+        baseY=.58;
+        const crate=new THREE.Mesh(geo.crate,lam('#b98352'));crate.position.y=.14;disp.add(crate);
+        const fm=lam(p.c);
+        for(let k=0;k<9;k++){const f=new THREE.Mesh(geo.fruit,fm);f.position.set((k%3-1)*.26+(Math.random()-.5)*.05,.32+Math.random()*.06,(Math.floor(k/3)-1)*.18);f.scale.setScalar(.9+Math.random()*.25);disp.add(f);}
+        const lb=new THREE.Mesh(new THREE.PlaneGeometry(.34,.34),labelMat);lb.position.set(0,.2,.36);disp.add(lb);
+        disp.position.set(x,baseY,sec.z);
+        tagPos=new THREE.Vector3(x+.3,baseY+.14,sec.z+.36);
+      }else{
+        const lvl=n>4?i%2:0;baseY=lvl?1.305:.505;
+        const copies=p.sh==='tray'||p.sh==='loaf'?[[-.0,0,.15],[0,.0,-.2]]:[[-.13,0,.12],[.13,0,.12],[0,0,-.18]];
+        copies.forEach(c=>{const m=packMesh(p,labelMat);m.position.set(c[0],c[1],c[2]);disp.add(m);});
+        if(p.sh==='tray'||p.sh==='loaf'){const extra=packMesh(p,labelMat);extra.position.set(0,p.sh==='tray'?.1:.22,-.2);disp.add(extra);}
+        disp.position.set(x,baseY,sec.z+.05);
+        tagPos=new THREE.Vector3(x,baseY-.06,sec.z+.6);
+      }
+      scene.add(disp);
+      const tag=new THREE.Mesh(new THREE.PlaneGeometry(.34,.22),new THREE.MeshBasicMaterial({map:tagTex['?']}));tag.position.copy(tagPos);scene.add(tag);
+      const pick=new THREE.Mesh(new THREE.BoxGeometry(Math.min(.9,sec.len/n*1.6),.9,1.1),new THREE.MeshBasicMaterial({visible:false}));
+      pick.position.set(x,baseY+.35,sec.z+.15);scene.add(pick);
+      const slot={p,sec,x,baseY,disp,tag,pick,ix:x,iz:sec.z+.6+.85,bounce:0};
+      pick.userData.slot=slot;SLOTS.push(slot);
+    });
+  });
+  // Spike's kitchen
+  const k=new THREE.Group();k.position.set(-10,0,7);scene.add(k);
+  box(6,.95,1.1,lam('#ffffff'),0,.475,0,k);box(6.1,.08,1.2,lam('#e2477f'),0,.99,0,k);
+  box(1.4,.06,.9,lam('#1d2340'),-1.6,1.05,0,k);
+  const pot=new THREE.Mesh(new THREE.CylinderGeometry(.32,.28,.4,18),lam('#c7cfdd'));pot.position.set(-1.6,1.28,0);k.add(pot);
+  const lid=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.04,18),lam('#9aa6bb'));lid.position.set(-1.6,1.5,0);k.add(lid);k.userData.lid=lid;
+  const board=box(.9,.05,.5,lam('#d9a066'),1.3,1.05,0,k);board.rotation.y=.2;
+  [['#d93a2b',1.1],['#f07c1c',1.45],['#3d8b3d',1.7]].forEach(([c,x])=>{const f=new THREE.Mesh(geo.fruit,lam(c));f.position.set(x,1.17,.05);k.add(f);});
+  BOXES.push({x0:-13.1,x1:-6.9,z0:6.4,z1:7.6});
+  kitchen=k;
+  // kitchen sign
+  const ks=new THREE.Mesh(new THREE.PlaneGeometry(4.2,1.05),new THREE.MeshBasicMaterial({transparent:true}));ks.position.set(-10,2.6,6.6);ks.rotation.x=-.12;scene.add(ks);kitchenSign=ks;
+}
+let kitchen=null,kitchenSign=null;
+function kitchenTex(){return canvasTex(512,128,(g,w,h)=>{g.fillStyle='#ffffff';rr(g,4,4,w-8,h-8,26);g.fill();g.lineWidth=8;g.strokeStyle='#1d2340';g.stroke();g.fillStyle='#7a4b2c';g.textAlign='center';g.textBaseline='middle';let size=48;const label=['Spike’s kitchen','Adatiņa virtuve','Кухня Колючкина'][LI[lang]];g.font=`900 ${size}px Rubik, sans-serif`;while(g.measureText(label).width>440&&size>24){size-=2;g.font=`900 ${size}px Rubik, sans-serif`;}g.fillText(label,w/2,h/2+3);});}
+function refreshSigns(){
+  signMeshes.forEach(s=>{s.mesh.material.map.dispose();s.mesh.material.map=signTex(s.sec);s.mesh.material.needsUpdate=true;});
+  if(kitchenSign){if(kitchenSign.material.map)kitchenSign.material.map.dispose();kitchenSign.material.map=kitchenTex();kitchenSign.material.needsUpdate=true;}
+  buildBigSign();
+}
+function refreshTags(){SLOTS.forEach(s=>{const k=S.discovered[s.p.id]?s.p.ns.grade:'?';s.tag.material.map=tagTex[k];s.tag.material.needsUpdate=true;});}
+
+/* ---------- Characters ---------- */
+function buildSpike(){
+  const g=new THREE.Group();
+  const bodyMat=lam('#8a5a3b'),faceMat=lam('#e7c9a0'),ink=lam('#1d2340'),white=lam('#ffffff');
+  const body=new THREE.Mesh(new THREE.SphereGeometry(.72,24,18),bodyMat);body.scale.set(1,.92,1.08);body.position.y=.82;body.castShadow=true;g.add(body);
+  const belly=new THREE.Mesh(new THREE.SphereGeometry(.56,20,16),faceMat);belly.scale.set(1,1,.6);belly.position.set(0,.74,.42);g.add(belly);
+  const head=new THREE.Group();head.position.set(0,1.18,.52);g.add(head);
+  const snout=new THREE.Mesh(new THREE.SphereGeometry(.3,18,14),faceMat);snout.scale.set(1.05,.85,1);head.add(snout);
+  const nose=new THREE.Mesh(new THREE.SphereGeometry(.085,12,10),ink);nose.position.set(0,.02,.3);head.add(nose);
+  const eyes=[];[-.15,.15].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.075,12,10),white);e.position.set(x,.13,.2);head.add(e);const pu=new THREE.Mesh(new THREE.SphereGeometry(.045,10,8),ink);pu.position.set(x,.13,.265);head.add(pu);eyes.push(e,pu);});
+  [-.24,.24].forEach(x=>{const ch=new THREE.Mesh(new THREE.SphereGeometry(.05,10,8),lam('#f4a3a3'));ch.position.set(x,-.03,.22);head.add(ch);});
+  [-.3,.3].forEach(x=>{const ear=new THREE.Mesh(new THREE.SphereGeometry(.09,10,8),bodyMat);ear.position.set(x,.24,-.05);head.add(ear);});
+  [[-.32,.25],[.32,.25],[-.3,-.3],[.3,-.3]].forEach(([x,z])=>{const f=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),ink);f.scale.set(1,.55,1.3);f.position.set(x,.08,z);g.add(f);});
+  const hands=[];[-.55,.55].forEach(x=>{const h=new THREE.Mesh(new THREE.SphereGeometry(.11,10,8),faceMat);h.position.set(x,.85,.45);g.add(h);hands.push(h);});
+  const spoon=new THREE.Group();const st=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.7,8),lam('#d9a066'));st.position.y=.3;spoon.add(st);const sb=new THREE.Mesh(new THREE.SphereGeometry(.09,10,8),lam('#d9a066'));sb.scale.set(1,.5,1.3);sb.position.y=.68;spoon.add(sb);spoon.position.set(.55,.8,.45);spoon.rotation.z=-.35;g.add(spoon);
+  // chef hat
+  const hat=new THREE.Group();hat.position.set(0,1.62,.15);hat.rotation.x=-.18;g.add(hat);
+  const band=new THREE.Mesh(new THREE.CylinderGeometry(.28,.3,.22,18),white);hat.add(band);
+  [[0,.28,0,.26],[-.18,.22,0,.18],[.18,.22,0,.18],[0,.22,.15,.18]].forEach(([x,y,z,r])=>{const p=new THREE.Mesh(new THREE.SphereGeometry(r,14,12),white);p.position.set(x,y,z);hat.add(p);});
+  // quills (instanced)
+  const quills=new THREE.Group();quills.position.y=.82;g.add(quills);
+  const N=150,dirs=[];
+  for(let i=0;i<N*2&&dirs.length<N;i++){const y=1-(i/(N*2-1))*2,r=Math.sqrt(1-y*y),th=i*2.399963;const d=new THREE.Vector3(Math.cos(th)*r,y,Math.sin(th)*r);if(d.z>.25||d.y<-.3)continue;dirs.push(d);}
+  const shaft=new THREE.InstancedMesh(new THREE.ConeGeometry(.055,.62,6),lam('#4a2b19'),dirs.length);
+  const tip=new THREE.InstancedMesh(new THREE.ConeGeometry(.032,.2,6),lam('#f1dfc0'),dirs.length);
+  const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0),sc=new THREE.Vector3(1,1,1);
+  dirs.forEach((d,i)=>{const dir=d.clone().add(new THREE.Vector3(0,.15,-.55)).normalize();q.setFromUnitVectors(up,dir);
+    const base=new THREE.Vector3(d.x*.7,d.y*.64,d.z*.76);const len=.9+((i*37)%10)/25;sc.set(1,len,1);
+    m4.compose(base.clone().add(dir.clone().multiplyScalar(.31*len)),q,sc);shaft.setMatrixAt(i,m4);
+    m4.compose(base.clone().add(dir.clone().multiplyScalar(.62*len+.08)),q,new THREE.Vector3(1,1,1));tip.setMatrixAt(i,m4);});
+  shaft.castShadow=true;quills.add(shaft,tip);
+  g.userData={body,head,eyes,quills,hat,hands,spoon};
+  return g;
+}
+function buildKid(){
+  const g=new THREE.Group();
+  const skin=lam('#f2c6a0'),shirt=lam('#ff7a45'),jeans=lam('#3c5a9a'),hair=lam('#5b3a1e'),ink=lam('#1d2340');
+  const legs=[];[-.1,.1].forEach(x=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.45,8),jeans);l.position.set(x,.23,0);l.castShadow=true;g.add(l);legs.push(l);});
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(.2,.24,.55,14),shirt);torso.position.y=.72;torso.castShadow=true;g.add(torso);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.2,16,12),skin);head.position.y=1.18;head.castShadow=true;g.add(head);
+  const hr=new THREE.Mesh(new THREE.SphereGeometry(.215,16,12,0,Math.PI*2,0,Math.PI/2),hair);hr.position.y=1.2;hr.rotation.x=-.25;g.add(hr);
+  [-.07,.07].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.028,8,6),ink);e.position.set(x,1.2,.18);g.add(e);});
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.05,16),lam('#2b6cf2'));cap.position.set(0,1.36,.03);g.add(cap);
+  const brim=new THREE.Mesh(new THREE.BoxGeometry(.24,.03,.18),lam('#2b6cf2'));brim.position.set(0,1.35,.24);g.add(brim);
+  [-.2,.2].forEach(x=>{const a=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.42,8),shirt);a.position.set(x,.82,.2);a.rotation.x=Math.PI/2.4;g.add(a);});
+  // cart
+  const cart=new THREE.Group();cart.position.set(0,0,.72);g.add(cart);
+  const basketMat=new THREE.MeshLambertMaterial({color:'#9fb7d9',transparent:true,opacity:.35});
+  const bg=new THREE.BoxGeometry(.62,.4,.55);const basket=new THREE.Mesh(bg,basketMat);basket.position.y=.62;cart.add(basket);
+  const edges=new THREE.LineSegments(new THREE.EdgesGeometry(bg),new THREE.LineBasicMaterial({color:'#1d2340'}));edges.position.copy(basket.position);cart.add(edges);
+  const handle=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.66,8),lam('#e2477f'));handle.rotation.z=Math.PI/2;handle.position.set(0,.92,-.34);cart.add(handle);
+  [[-.25,.2],[.25,.2],[-.25,-.2],[.25,-.2]].forEach(([x,z])=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.04,10),ink);w.rotation.z=Math.PI/2;w.position.set(x,.06,z);cart.add(w);});
+  box(.04,.38,.04,lam('#9aa6bb'),-.28,.25,-.24,cart);box(.04,.38,.04,lam('#9aa6bb'),.28,.25,-.24,cart);box(.04,.38,.04,lam('#9aa6bb'),-.28,.25,.24,cart);box(.04,.38,.04,lam('#9aa6bb'),.28,.25,.24,cart);
+  const contents=new THREE.Group();contents.position.set(0,.44,0);cart.add(contents);
+  g.userData={legs,contents,cart};
+  return g;
+}
+
+/* ---------- Effects ---------- */
+const confetti=[];const confGeo=new THREE.PlaneGeometry(.09,.15);
+const confCols=[NSC.A,NSC.B,NSC.C,NSC.D,NSC.E,'#2b6cf2','#ff6fa5'];
+function burst(pos,n,spread){
+  n=RM?Math.min(n,12):n;
+  for(let i=0;i<n;i++){let c=confetti.find(o=>!o.alive);if(!c){if(confetti.length>260)break;const m=new THREE.Mesh(confGeo,new THREE.MeshBasicMaterial({color:'#fff',side:THREE.DoubleSide}));scene.add(m);c={m,alive:false,v:new THREE.Vector3()};confetti.push(c);}
+    c.alive=true;c.life=1.6+Math.random();c.m.visible=true;c.m.material.color.set(confCols[i%confCols.length]);c.m.position.copy(pos);
+    const a=Math.random()*Math.PI*2,s=(spread||3)*(.4+Math.random());c.v.set(Math.cos(a)*s*.6,3+Math.random()*4,Math.sin(a)*s*.6);c.spin=(Math.random()-.5)*14;}
+}
+function updateConfetti(dt){confetti.forEach(c=>{if(!c.alive)return;c.life-=dt;if(c.life<=0){c.alive=false;c.m.visible=false;return;}c.v.y-=9*dt;c.m.position.addScaledVector(c.v,dt);if(c.m.position.y<.03){c.m.position.y=.03;c.v.set(0,0,0);}c.m.rotation.x+=c.spin*dt;c.m.rotation.y+=c.spin*.7*dt;});}
+const steam=[];
+function makeSprite(text,bg,fg,size){const tex=canvasTex(128,128,(g,w,h)=>{g.fillStyle=bg;g.beginPath();g.arc(w/2,h/2-6,50,0,Math.PI*2);g.fill();g.beginPath();g.moveTo(w/2-14,h/2+36);g.lineTo(w/2,h/2+60);g.lineTo(w/2+14,h/2+36);g.fill();g.lineWidth=6;g.strokeStyle='#1d2340';g.beginPath();g.arc(w/2,h/2-6,50,0,Math.PI*2);g.stroke();g.fillStyle=fg;g.font='900 70px Rubik, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(text,w/2,h/2-2);});const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false}));sp.scale.set(size,size,size);sp.renderOrder=10;return sp;}
+function starSprite(){const tex=canvasTex(128,128,(g,w,h)=>{g.translate(w/2,h/2);g.beginPath();for(let i=0;i<10;i++){const r=i%2?24:54,a=i*Math.PI/5-Math.PI/2;g.lineTo(Math.cos(a)*r,Math.sin(a)*r);}g.closePath();g.fillStyle='#ffbf00';g.fill();g.lineWidth=7;g.strokeStyle='#1d2340';g.stroke();});const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false}));sp.scale.set(.9,.9,.9);sp.renderOrder=11;return sp;}
+
+/* ---------- Build world ---------- */
+buildStore();buildBigSign();refreshSigns();refreshTags();
+const spike=buildSpike();spike.position.set(-10,0,8.4);scene.add(spike);
+BOXES.push({x0:-10.75,x1:-9.25,z0:7.7,z1:9.1});
+const spikePick=new THREE.Mesh(new THREE.BoxGeometry(1.6,2.2,1.6),new THREE.MeshBasicMaterial({visible:false}));spikePick.position.set(-10,1.1,8.4);scene.add(spikePick);
+const bubble=makeSprite('!','#ffbf00','#1d2340',.85);bubble.position.set(-10,2.75,8.5);scene.add(bubble);
+const bubbleQ=makeSprite('?','#ffffff','#2b6cf2',.75);bubbleQ.position.set(-10,2.75,8.5);scene.add(bubbleQ);
+const kid=buildKid();kid.position.set(0,0,13);kid.rotation.y=Math.PI;scene.add(kid);
+const ring=new THREE.Mesh(new THREE.RingGeometry(.42,.58,32),new THREE.MeshBasicMaterial({color:'#2b6cf2',transparent:true,opacity:.85}));ring.rotation.x=-Math.PI/2;ring.position.y=.03;ring.visible=false;scene.add(ring);
+const arrow=new THREE.Mesh(new THREE.ConeGeometry(.22,.55,4),new THREE.MeshBasicMaterial({color:'#ffbf00'}));arrow.geometry.rotateX(Math.PI/2);arrow.visible=false;scene.add(arrow);
+const arrowEdge=new THREE.LineSegments(new THREE.EdgesGeometry(arrow.geometry),new THREE.LineBasicMaterial({color:'#1d2340'}));arrow.add(arrowEdge);
+const beacons={};SECTIONS.forEach(s=>{const sp=starSprite();sp.position.set(s.x,s.kind==='crates'?3.35:3.85,s.z+(s.kind==='crates'?-.3:.1));sp.visible=false;scene.add(sp);beacons[s.id]=sp;});
+for(let i=0;i<6;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.09,8,6),new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:.6}));m.userData.t=i/6;scene.add(m);steam.push(m);}
+
+/* ======================= NAVIGATION GRID ======================= */
+const CELL=.5,GX0=-20,GZ0=-18,GW=80,GH=72,PR=.5;
+const blocked=new Uint8Array(GW*GH);
+function cellOf(x,z){return [Math.floor((x-GX0)/CELL),Math.floor((z-GZ0)/CELL)];}
+function cellCenter(cx,cz){return [GX0+(cx+.5)*CELL,GZ0+(cz+.5)*CELL];}
+function computeBlocked(){for(let cz=0;cz<GH;cz++)for(let cx=0;cx<GW;cx++){const [x,z]=cellCenter(cx,cz);let b=x<-19.4||x>19.4||z<-17.6||z>17.4;if(!b)for(const B of BOXES){if(x>B.x0-PR&&x<B.x1+PR&&z>B.z0-PR&&z<B.z1+PR){b=true;break;}}blocked[cz*GW+cx]=b?1:0;}}
+computeBlocked();
+function freeNear(cx,cz){if(!blocked[cz*GW+cx])return [cx,cz];for(let r=1;r<8;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const x=cx+dx,z=cz+dz;if(x>=0&&z>=0&&x<GW&&z<GH&&!blocked[z*GW+x])return [x,z];}return null;}
+function los(ax,az,bx,bz){const d=Math.hypot(bx-ax,bz-az),n=Math.ceil(d/.2);for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;const [cx,cz]=cellOf(x,z);if(cx<0||cz<0||cx>=GW||cz>=GH||blocked[cz*GW+cx])return false;}return true;}
+function findPath(fx,fz,tx,tz){
+  let s=cellOf(fx,fz),g=cellOf(tx,tz);s=freeNear(Math.max(0,Math.min(GW-1,s[0])),Math.max(0,Math.min(GH-1,s[1])));g=freeNear(Math.max(0,Math.min(GW-1,g[0])),Math.max(0,Math.min(GH-1,g[1])));if(!s||!g)return null;
+  const si=s[1]*GW+s[0],gi=g[1]*GW+g[0];const gs=new Float32Array(GW*GH).fill(Infinity),from=new Int32Array(GW*GH).fill(-1),closed=new Uint8Array(GW*GH);
+  const open=[si];gs[si]=0;const h=i=>Math.hypot(i%GW-g[0],Math.floor(i/GW)-g[1]);const f=new Float32Array(GW*GH).fill(Infinity);f[si]=h(si);
+  let guard=0;
+  while(open.length&&guard++<8000){let bi=0;for(let i=1;i<open.length;i++)if(f[open[i]]<f[open[bi]])bi=i;const cur=open.splice(bi,1)[0];if(cur===gi)break;closed[cur]=1;const cx=cur%GW,cz=Math.floor(cur/GW);
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dz)continue;const nx=cx+dx,nz=cz+dz;if(nx<0||nz<0||nx>=GW||nz>=GH)continue;const ni=nz*GW+nx;if(blocked[ni]||closed[ni])continue;if(dx&&dz&&(blocked[cz*GW+nx]||blocked[nz*GW+cx]))continue;const ng=gs[cur]+(dx&&dz?1.414:1);if(ng<gs[ni]){gs[ni]=ng;f[ni]=ng+h(ni);from[ni]=cur;if(!open.includes(ni))open.push(ni);}}}
+  if(from[gi]<0&&gi!==si)return null;
+  const cells=[];let c=gi;while(c>=0&&c!==si){cells.push(c);c=from[c];}cells.reverse();
+  const pts2=cells.map(i=>cellCenter(i%GW,Math.floor(i/GW)));pts2.push([tx,tz]);
+  // smooth with line of sight
+  const out=[];let ax=fx,az=fz,i=0;while(i<pts2.length){let j=pts2.length-1;while(j>i&&!los(ax,az,pts2[j][0],pts2[j][1]))j--;out.push(pts2[j]);ax=pts2[j][0];az=pts2[j][1];i=j+1;}
+  return out;
+}
+
+/* ======================= GAME FLOW ======================= */
+let mode='title'; // title | dialog | play | card | complete | final | help
+let path=null,pendingTarget=null,nearSlot=null,nearSpike=false,hintUntil=0,camFocus='spike';
+const keys={};
+let dlg=null;
+
+function questSlotHTML(){
+  const q=QUESTS[S.q];const slots=curSlots();
+  $('qNum').textContent=t('quest')+' '+(S.q+1)+'/'+QUESTS.length;
+  $('qTitle').textContent=q.e+' '+L(q.title);
+  $('qProg').textContent=(slots.length-remaining())+'/'+slots.length;
+  $('slotList').innerHTML=slots.map((d,i)=>{const id=S.filled[i];const p=id&&PBY[id];
+    return `<li class="${p?'done':''}"><span class="ico">${p?p.e:d.e}</span><span class="lbl">${p?L(p.nm):L(d.lbl)}</span><span class="need">${p?`<i class="mini ${p.ns.grade}">${p.ns.grade}</i>`:needHTML(d.max)}</span></li>`;}).join('');
+}
+function renderTop(){
+  $('scorePill').textContent=t('points')+' '+S.score;
+  const f=Object.keys(S.discovered).length;$('foundPill').textContent=t('found')+' '+f+'/'+PRODUCTS.length;
+  $('langBtn').textContent=lang.toUpperCase();
+  $('soundBtn').classList.toggle('off',!soundOn);
+  ['hintBtn','langBtn','soundBtn','helpBtn'].forEach((id,i)=>{const lbl=[t('hint'),t('lang'),t('sound'),t('help')][i];$(id).title=lbl;$(id).setAttribute('aria-label',lbl);});
+}
+function renderHUD(){renderTop();questSlotHTML();$('quest').hidden=(mode==='title'||S.finished);}
+function renderTitle(){
+  $('tName').innerHTML=`<span class="abc">${NS.map(g=>`<i class="mini ${g}" style="width:30px;height:30px;font-size:1.1rem">${g}</i>`).join('')}</span><br>${t('game')}`;
+  $('tTag').textContent=t('tag');
+  const started=S.introDone||S.score>0;
+  $('playBtn').textContent=started&&!S.finished?t('cont'):t('play');
+  $('newBtn').textContent=t('newGame');$('newBtn').hidden=!started;
+  document.querySelectorAll('#langRow button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===lang)));
+}
+function setLang(l){lang=l;S.lang=l;save();document.documentElement.lang=l;refreshSigns();renderTitle();renderHUD();if(mode==='dialog'&&dlg)showLine(true);if(mode==='card'&&cardSlot)renderCard();if(mode==='help')renderHelp();if(mode==='complete')renderComplete();if(mode==='final')renderFinal();$('dlgNext').textContent=t('next');}
+
+/* ---------- Dialog ---------- */
+function showDialog(lines,onDone){dlg={lines,i:0,onDone,shown:0,full:''};mode='dialog';camFocus='spike';$('dialog').hidden=false;$('prompt').hidden=true;$('dlgName').textContent=t('spike');showLine();}
+function curLine(){const ln=dlg.lines[dlg.i];return typeof ln==='function'?ln():ln;}
+function showLine(keep){const ln=curLine();const txt=typeof ln==='string'?ln:L2(ln);dlg.full=txt;if(!keep)dlg.shown=0;else dlg.shown=txt.length;
+  const sc=$('dlgScale');if(ln&&ln.scale){sc.hidden=false;sc.className='ns-strip'+(ln.scale==='all'?'':' pick');sc.innerHTML=stripHTML(ln.scale==='all'?'':ln.scale);}else sc.hidden=true;
+  $('dlgNext').textContent=dlg.i===dlg.lines.length-1?t('go'):t('next');renderDlgText();}
+function L2(ln){return ln[lang]!=null?ln[lang]:ln.t;}
+function renderDlgText(){$('dlgText').textContent=dlg.full.slice(0,Math.floor(dlg.shown));}
+function advance(){if(!dlg)return;if(dlg.shown<dlg.full.length){dlg.shown=dlg.full.length;renderDlgText();return;}
+  dlg.i++;if(dlg.i>=dlg.lines.length){const cb=dlg.onDone;dlg=null;$('dialog').hidden=true;mode='play';camFocus='kid';if(cb)cb();return;}showLine();}
+function lesson(key){return LESSONS[key][lang].map((_,i)=>()=>LESSONS[key][lang][i].scale?{t:LESSONS[key][lang][i].t,scale:LESSONS[key][lang][i].scale}:LESSONS[key][lang][i].t);}
+function startQuest(){ensureFilled();renderHUD();S.qStartScore=S.score;save();showDialog(lesson(QUESTS[S.q].id),()=>{hintUntil=performance.now()+9000;toast(t('hintOn'),'',3500);});}
+
+/* ---------- Product card ---------- */
+let cardSlot=null,cardGuess=null;
+function openCard(slot){cardSlot=slot;cardGuess=S.discovered[slot.p.id]?'seen':null;mode='card';$('card').hidden=false;$('prompt').hidden=true;SFX.open();renderCard();setTimeout(()=>{const b=cardGuess?$('addBtn'):$('guessRow').querySelector('button');if(b)b.focus();},30);}
+function factRows(p,revealed){
+  const r=p.ns,n=Object.assign({kj:0,sug:0,sf:0,salt:0,fib:0,pro:0,fvl:0,fat:0},p.n||{});
+  const chip=(v,kind,skip)=>!revealed?'':skip?`<span class="chip skip">+${v}</span>`:v?`<span class="chip ${kind}">${kind==='bad'?'−':'+'}${v}</span>`:`<span class="chip zero">0</span>`;
+  const rows=[];
+  if(r.water){return `<tr><td>${t('energy')}</td><td class="v">0 kJ</td><td class="p">${chip(0,'bad')}</td></tr><tr><td>${t('sugar')}</td><td class="v">0 g</td><td class="p">${chip(0,'bad')}</td></tr>`;}
+  rows.push(['energy',p.cat==='fat'?`${Math.round(n.sf*37)} kJ`:`${n.kj} kJ`,r.bad.energy,'bad']);
+  if(p.cat==='fat')rows.push(['fat',`${n.fat} g`,null]);
+  rows.push(['sugar',`${n.sug} g`,r.bad.sugar,'bad']);
+  rows.push(['satfat',`${n.sf} g`,r.bad.satfat,'bad']);
+  rows.push(['salt',`${n.salt} g`,r.bad.salt,'bad']);
+  if(n.sweet)rows.push(['sweet',t('yes'),r.bad.sweet,'bad']);
+  rows.push(['fiber',`${n.fib} g`,r.good.fiber,'good']);
+  rows.push(['protein',`${n.pro} g`,r.proteinCounted?r.good.protein:r.proteinRaw,'good',!r.proteinCounted&&r.proteinRaw>0]);
+  rows.push(['fvl',`${n.fvl||0} %`,r.good.fvl,'good']);
+  return rows.map(([k,v,pt,kind,skip])=>`<tr><td>${t(k)}</td><td class="v">${v}</td><td class="p">${pt==null?'':chip(pt,kind,skip)}</td></tr>`).join('');
+}
+function renderCard(){
+  const p=cardSlot.p,r=p.ns,sec=cardSlot.sec;const revealed=!!cardGuess;
+  $('cardEmoji').textContent=p.e;$('cardEmoji').style.background=p.c;
+  $('cardSec').textContent=sec.e+' '+L(sec.nm);$('cardName').textContent=L(p.nm);
+  $('cardPer').textContent=(p.cat==='drink'||p.cat==='water')?t('per100ml'):t('per100g');
+  $('facts').innerHTML=factRows(p,revealed);
+  $('guessArea').hidden=revealed;$('revealArea').hidden=!revealed;
+  $('cardClose').setAttribute('aria-label',t('close2'));
+  if(!revealed){$('guessQ').textContent=t('guessQ');$('guessHint').textContent=t('guessHint');
+    $('guessRow').innerHTML=NS.map(g=>`<button class="${g}" data-g="${g}" aria-label="${g}">${g}</button>`).join('');return;}
+  const d=cardGuess==='seen'?null:Math.abs(NS.indexOf(cardGuess)-NS.indexOf(r.grade));
+  $('verdict').textContent=cardGuess==='seen'?t('seen',{g:r.grade}):d===0?t('right'):d===1?t('close'):t('wrongG',{g:r.grade});
+  $('verdict').style.color=d===0?'var(--nsA)':'var(--ink)';
+  $('cardStrip').innerHTML=stripHTML(r.grade);
+  if(r.water){$('calc').innerHTML='';$('why').textContent=t('water');}
+  else{$('calc').innerHTML=`<div class="col"><span class="num bad">${r.N}</span><small>${t('badPts')}</small></div><span>−</span><div class="col"><span class="num good">${r.P}</span><small>${t('goodPts')}</small></div><span>=</span><div class="col"><span class="num res">${r.S}</span><small>${t('scoreW')}</small></div><span>→</span><div class="col"><i class="mini ${r.grade}" style="width:44px;height:44px;font-size:1.4rem;border:3px solid var(--ink);border-radius:12px">${r.grade}</i><small>&nbsp;</small></div>`;
+    const bk=Object.keys(r.bad).filter(k=>r.bad[k]>0).sort((a,b)=>r.bad[b]-r.bad[a])[0];const gk=Object.keys(r.good).filter(k=>r.good[k]>0).sort((a,b)=>r.good[b]-r.good[a])[0];
+    $('why').textContent=!bk?t('whyNoBad'):gk?t('why',{bad:t(bk).toLowerCase(),good:t(gk).toLowerCase()}):t('whyNoGood',{bad:t(bk).toLowerCase()});}
+  const notes=[];if(p.cat==='fat')notes.push(t('noteFat'));if(p.cat==='cheese')notes.push(t('noteCheese'));if(p.cat==='drink')notes.push(t('noteDrink'));if(!r.proteinCounted&&r.proteinRaw>0)notes.push(t('noteProtein'));
+  $('catNote').textContent=notes.join(' ');$('catNote').hidden=!notes.length;
+  $('addBtn').textContent='🧺 '+t('add');$('backBtn').textContent=t('back');
+}
+function guess(g){
+  if(!cardSlot||cardGuess)return;const p=cardSlot.p,r=p.ns;cardGuess=g;S.discovered[p.id]=true;S.gT++;
+  const d=Math.abs(NS.indexOf(g)-NS.indexOf(r.grade));const rect=$('guessRow').getBoundingClientRect();
+  if(d===0){S.gR++;SFX.right();addScore(10,rect.left+rect.width/2,rect.top);burst(new THREE.Vector3(cardSlot.x,cardSlot.baseY+.6,cardSlot.sec.z+.6),18,2);}
+  else if(d===1){S.gR+=.5;SFX.close();addScore(5,rect.left+rect.width/2,rect.top);}else SFX.miss();
+  refreshTags();renderTop();save();renderCard();setTimeout(()=>$('addBtn').focus(),30);
+}
+function closeCard(){$('card').hidden=true;cardSlot=null;mode='play';}
+function tryAdd(){
+  const p=cardSlot.p,r=p.ns;const slots=curSlots();
+  const matches=[];slots.forEach((d,i)=>{if(!S.filled[i]&&d.tags.some(tg=>p.tg.includes(tg)))matches.push(i);});
+  if(S.filled.includes(p.id)){toast(t('dupe',{name:L(p.nm)}),'bad');SFX.miss();return;}
+  if(!matches.length){const any=slots.some(d=>d.tags.some(tg=>p.tg.includes(tg)));toast(any?t('full'):t('notNeeded'),'');SFX.miss();closeCard();return;}
+  const ok=matches.filter(i=>NS.indexOf(r.grade)<=NS.indexOf(slots[i].max));
+  if(!ok.length){const need=slots[matches[0]].max;S.mistakes++;save();SFX.wrong();toast(t('tooLow',{name:L(p.nm),g:r.grade,need}),'bad',5200);spikeShake=1;closeCard();return;}
+  const nonTreat=ok.filter(i=>!slots[i].treat);const idx=(nonTreat.length?nonTreat:ok)[0];
+  S.filled[idx]=p.id;SFX.add();const rect=$('addBtn').getBoundingClientRect();addScore(20,rect.left+rect.width/2,rect.top);
+  addToCart(p);burst(new THREE.Vector3(cardSlot.x,cardSlot.baseY+.5,cardSlot.sec.z+.7),26,2.5);cardSlot.bounce=1;
+  closeCard();renderHUD();save();
+  if(basketDone()){setTimeout(()=>{SFX.hint();toast(t('basketDone'),'good',5000);},350);}else toast(t('added',{name:L(p.nm),g:r.grade}),'good',2800);
+}
+function addToCart(p){const c=kid.userData.contents;const n=c.children.length;const m=new THREE.Mesh(new THREE.BoxGeometry(.16,.16,.16),[lam(p.c),lam(p.c),new THREE.MeshLambertMaterial({map:emojiTex(p.e,'#fff')}),lam(p.c),lam(p.c),lam(p.c)]);m.position.set(((n%3)-1)*.17,Math.floor(n/9)*.17+.02,((Math.floor(n/3)%3)-1)*.15);m.rotation.y=(Math.random()-.5)*.6;c.add(m);}
+function rebuildCart(){const c=kid.userData.contents;while(c.children.length)c.remove(c.children[0]);S.filled.forEach(id=>{if(id)addToCart(PBY[id]);});}
+
+/* ---------- Spike interaction & quest completion ---------- */
+let spikeShake=0,spikeParty=0;
+function talkToSpike(){
+  SFX.open();
+  if(basketDone()){showDialog([()=>t('peek'),()=>t('yay')],()=>completeQuest());return;}
+  const n=remaining();hintUntil=performance.now()+15000;SFX.hint();
+  showDialog([()=>t('more',{n})]);
+}
+let lastStars=[];
+function completeQuest(){
+  const st=[true,S.mistakes===0,S.gT===0||S.gR/S.gT>=.6];lastStars=st;const count=st.filter(Boolean).length;
+  S.stars[S.q]=count;spikeParty=3;SFX.fanfare();burst(new THREE.Vector3(-10,2,8.6),120,5);
+  addScore(50*count);mode='complete';renderComplete();$('complete').hidden=false;setTimeout(()=>$('cNext').focus(),40);save();
+}
+function renderComplete(){const q=QUESTS[S.q];$('cTitle').textContent=q.e+' '+t('done');
+  $('cStars').innerHTML=lastStars.map((on,i)=>`<span class="s${on?' on':''}" style="animation-delay:${i*.18}s">★</span>`).join('');
+  $('cList').innerHTML=[t('s1'),t('s2'),t('s3')].map((s,i)=>`<li class="${lastStars[i]?'':'off'}"><span class="k">${lastStars[i]?'⭐':'☆'}</span>${s}</li>`).join('');
+  $('cPts').textContent=t('points')+': '+S.score;$('cNext').textContent=S.q<QUESTS.length-1?t('nextQ')+' ▸':t('finish');}
+function nextQuest(){$('complete').hidden=true;
+  if(S.q<QUESTS.length-1){S.q++;S.filled=[];S.mistakes=0;S.gR=0;S.gT=0;ensureFilled();rebuildCart();save();renderHUD();mode='play';startQuest();}
+  else{S.finished=true;save();renderHUD();showDialog(lesson('final'),()=>{mode='final';renderFinal();$('final').hidden=false;spikeParty=4;SFX.fanfare();burst(new THREE.Vector3(-10,2,8.6),160,6);});}}
+function renderFinal(){const s=S.stars.reduce((a,b)=>a+(b||0),0);$('fTitle').textContent=t('finalT');$('fStars').innerHTML='<span class="s on">★</span>'.repeat(Math.max(1,Math.round(s/6)));$('fText').textContent=t('finalText',{s,p:S.score});$('fAgain').textContent=t('again');}
+function resetGame(){const keepLang=lang;S=freshState();S.lang=keepLang;ensureFilled();save();rebuildCart();refreshTags();kid.position.set(0,0,13);kid.rotation.y=Math.PI;path=null;}
+
+/* ---------- Help ---------- */
+function renderHelp(){$('hTitle').textContent=t('help');$('hList').innerHTML=['h1','h2','h3','h4'].map(k=>`<li>${t(k)}</li>`).join('');$('hStrip').innerHTML=stripHTML('');$('hScale').textContent=t('hScale');$('helpClose').setAttribute('aria-label',t('close2'));}
+let modeBeforeHelp='play';
+function openHelp(){if(mode==='help')return;modeBeforeHelp=mode;mode='help';renderHelp();$('help').hidden=false;}
+function closeHelp(){$('help').hidden=true;mode=modeBeforeHelp;}
+
+/* ---------- Hints ---------- */
+function neededSections(){const out=new Set();const slots=curSlots();slots.forEach((d,i)=>{if(S.filled[i])return;PRODUCTS.forEach(p=>{if(d.tags.some(tg=>p.tg.includes(tg)))out.add(p.s);});});return out;}
+
+/* ======================= INPUT ======================= */
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+let downAt=null;
+renderer.domElement.addEventListener('pointerdown',e=>{downAt={x:e.clientX,y:e.clientY};ensureAudio();});
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(!downAt)return;const moved=Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y);downAt=null;if(moved>12)return;
+  if(mode==='dialog'){advance();return;}
+  if(mode!=='play')return;
+  const r=renderer.domElement.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);
+  const picks=SLOTS.map(s=>s.pick).concat([spikePick]);const hit=ray.intersectObjects(picks,false)[0];
+  if(hit){if(hit.object===spikePick){goTo(-10,9.7,{spike:true});}else{const s=hit.object.userData.slot;goTo(s.ix,s.iz,{slot:s});}return;}
+  const fh=ray.intersectObject(floor,false)[0];if(fh)goTo(fh.point.x,fh.point.z,null);
+});
+function goTo(x,z,target){const d=Math.hypot(kid.position.x-x,kid.position.z-z);
+  if(target&&d<1.4){path=null;interactWith(target);return;}
+  path=findPath(kid.position.x,kid.position.z,x,z);pendingTarget=target;
+  ring.visible=true;ring.position.set(x,.03,z);ringFade=1;}
+let ringFade=0;
+function interactWith(target){if(target.spike){faceTo(-10,8.4);talkToSpike();}else if(target.slot){faceTo(target.slot.x,target.slot.sec.z);openCard(target.slot);}}
+function faceTo(x,z){kid.rotation.y=Math.atan2(x-kid.position.x,z-kid.position.z);}
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(e.repeat&&mode!=='play')return;
+  if(mode==='title'&&(k==='enter')){$('playBtn').click();e.preventDefault();return;}
+  if(mode==='dialog'&&(k===' '||k==='enter'||k==='e')){if(e.target&&e.target.id==='dlgNext'&&k!=='e')return;advance();e.preventDefault();return;}
+  if(mode==='card'){if(k==='escape')closeCard();else if(!cardGuess&&NS.includes(e.key.toUpperCase())&&e.key.length===1){guess(e.key.toUpperCase());}return;}
+  if(mode==='help'&&k==='escape'){closeHelp();return;}
+  if(mode!=='play')return;
+  if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){keys[k]=true;path=null;pendingTarget=null;e.preventDefault();}
+  if(k==='e'||k===' '||k==='enter'){if(e.target&&e.target.tagName==='BUTTON'&&k!=='e')return;if(nearSpike)interactWith({spike:true});else if(nearSlot)interactWith({slot:nearSlot});e.preventDefault();}
+  if(k==='h'){$('hintBtn').click();}
+});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+
+$('dlgNext').addEventListener('click',()=>{ensureAudio();advance();});
+$('cardClose').addEventListener('click',closeCard);
+$('card').addEventListener('click',e=>{if(e.target.id==='card')closeCard();});
+$('guessRow').addEventListener('click',e=>{const b=e.target.closest('button');if(b)guess(b.dataset.g);});
+$('addBtn').addEventListener('click',tryAdd);
+$('backBtn').addEventListener('click',()=>{SFX.close();closeCard();});
+$('cNext').addEventListener('click',nextQuest);
+$('fAgain').addEventListener('click',()=>{$('final').hidden=true;resetGame();renderHUD();mode='play';showDialog(lesson('intro'),()=>{S.introDone=true;save();startQuest();});});
+$('helpBtn').addEventListener('click',()=>{ensureAudio();if(mode==='help')closeHelp();else openHelp();});
+$('helpClose').addEventListener('click',closeHelp);
+$('help').addEventListener('click',e=>{if(e.target.id==='help')closeHelp();});
+$('soundBtn').addEventListener('click',()=>{soundOn=!soundOn;ensureAudio();renderTop();try{localStorage.setItem(SKEY+'-sound',soundOn?'1':'0');}catch(e){}});
+try{soundOn=localStorage.getItem(SKEY+'-sound')!=='0';}catch(e){}
+$('langBtn').addEventListener('click',()=>{const i=['lv','ru','en'].indexOf(lang);setLang(['lv','ru','en'][(i+1)%3]);});
+$('hintBtn').addEventListener('click',()=>{if(mode!=='play')return;ensureAudio();SFX.hint();hintUntil=performance.now()+12000;toast(basketDone()?t('basketDone'):t('hintOn'),'',3200);});
+$('questToggle').addEventListener('click',()=>{const q=$('quest');q.classList.toggle('collapsed');$('questToggle').setAttribute('aria-expanded',String(!q.classList.contains('collapsed')));});
+document.querySelectorAll('#langRow button').forEach(b=>b.addEventListener('click',()=>{setLang(b.dataset.lang);}));
+$('newBtn').addEventListener('click',()=>{resetGame();renderTitle();renderHUD();});
+$('playBtn').addEventListener('click',()=>{
+  ensureAudio();$('title').hidden=true;
+  if(S.finished){resetGame();}
+  mode='play';camFocus='kid';rebuildCart();renderHUD();
+  if(!S.introDone){showDialog(lesson('intro'),()=>{S.introDone=true;save();startQuest();});}
+  else{mode='play';camFocus='kid';if(basketDone())toast(t('basketDone'),'good',4000);else {hintUntil=performance.now()+6000;toast(t('hintOn'),'',3000);}}
+});
+if(window.innerWidth<560)$('quest').classList.add('collapsed');
+
+/* ======================= LOOP ======================= */
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?60:45;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);resize();
+const camPos=new THREE.Vector3(-6,4,16),camLook=new THREE.Vector3(-10,1.2,8);
+const tmpV=new THREE.Vector3(),tmpL=new THREE.Vector3();
+let last=performance.now(),walkPhase=0,stepT=0,time=0;
+function collide(p){
+  const r=.5;
+  for(const B of BOXES){const cx=Math.max(B.x0,Math.min(p.x,B.x1)),cz=Math.max(B.z0,Math.min(p.z,B.z1));const dx=p.x-cx,dz=p.z-cz,d2=dx*dx+dz*dz;
+    if(d2<r*r){if(d2>1e-6){const d=Math.sqrt(d2);p.x=cx+dx/d*r;p.z=cz+dz/d*r;}else{const l=p.x-B.x0,rr2=B.x1-p.x,u=p.z-B.z0,dn=B.z1-p.z;const m=Math.min(l,rr2,u,dn);if(m===l)p.x=B.x0-r;else if(m===rr2)p.x=B.x1+r;else if(m===u)p.z=B.z0-r;else p.z=B.z1+r;}}}
+  p.x=Math.max(-19.4,Math.min(19.4,p.x));p.z=Math.max(-17.4,Math.min(17.3,p.z));
+}
+function tick(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;
+  // movement
+  let mx=0,mz=0;
+  if(mode==='play'){
+    if(keys.arrowup||keys.w)mz-=1;if(keys.arrowdown||keys.s)mz+=1;if(keys.arrowleft||keys.a)mx-=1;if(keys.arrowright||keys.d)mx+=1;
+    if(!mx&&!mz&&path&&path.length){const [tx,tz]=path[0];const dx=tx-kid.position.x,dz=tz-kid.position.z,d=Math.hypot(dx,dz);
+      if(d<.15){path.shift();if(!path.length){path=null;if(pendingTarget){const tg=pendingTarget;pendingTarget=null;interactWith(tg);}}}else{mx=dx/d;mz=dz/d;}}
+  }
+  const moving=mx||mz;
+  if(moving){const len=Math.hypot(mx,mz);mx/=len;mz/=len;const sp=4.6;const p=kid.position;p.x+=mx*sp*dt;p.z+=mz*sp*dt;collide(p);
+    const want=Math.atan2(mx,mz);let d=want-kid.rotation.y;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;kid.rotation.y+=d*Math.min(1,dt*12);
+    walkPhase+=dt*12;stepT-=dt;if(stepT<=0){SFX.step();stepT=.28;}}
+  const ud=kid.userData;ud.legs[0].rotation.x=moving?Math.sin(walkPhase)*.6:0;ud.legs[1].rotation.x=moving?-Math.sin(walkPhase)*.6:0;kid.position.y=moving?Math.abs(Math.sin(walkPhase))*.05:0;ud.cart.rotation.z=moving?Math.sin(walkPhase*.5)*.02:0;
+  // nearest interactable
+  nearSlot=null;nearSpike=false;
+  if(mode==='play'){let best=1.45;for(const s of SLOTS){const d=Math.hypot(s.ix-kid.position.x,s.iz-kid.position.z);if(d<best){best=d;nearSlot=s;}}
+    const ds=Math.hypot(-10-kid.position.x,9.7-kid.position.z);if(ds<2&&ds<best+.4){nearSpike=true;nearSlot=null;}
+    const pr=$('prompt');if(nearSpike){pr.textContent=(basketDone()?'🧺 '+t('talkReady'):'💬 '+t('talk'));pr.hidden=false;}else if(nearSlot){pr.textContent='🔍 '+L(nearSlot.p.nm)+' · '+t('look');pr.hidden=false;}else pr.hidden=true;}
+  SLOTS.forEach(s=>{const target=(s===nearSlot?1:0);s.hl=(s.hl||0)+(target-(s.hl||0))*Math.min(1,dt*10);s.bounce=Math.max(0,s.bounce-dt*1.5);
+    s.disp.position.y=s.baseY+s.hl*.05+Math.sin(time*8)*.03*s.hl+Math.sin(s.bounce*12)*.08*s.bounce;});
+  if(nearSlot){ring.visible=true;ring.position.set(nearSlot.ix,.03,nearSlot.iz-.25);ring.material.opacity=.85;}
+  else if(ringFade>0){ringFade-=dt*.8;ring.material.opacity=Math.max(0,ringFade);ring.visible=ringFade>0;}else ring.visible=false;
+  // spike animation
+  const su=spike.userData;const talking=mode==='dialog'&&dlg&&dlg.shown<dlg.full.length;
+  spike.position.y=spikeParty>0?Math.abs(Math.sin(time*9))*.5:talking?Math.abs(Math.sin(time*14))*.06:0;
+  spike.rotation.y=spikeParty>0?spike.rotation.y+dt*7:(()=>{const want=Math.atan2(kid.position.x-spike.position.x,kid.position.z-spike.position.z);let d=want-spike.rotation.y;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return spike.rotation.y+d*Math.min(1,dt*4);})();
+  if(spikeParty>0){spikeParty-=dt;if(spikeParty<=0)spike.rotation.y=0;}
+  const puff=spikeParty>0?1.25:1+Math.sin(time*2)*.02+(spikeShake>0?Math.sin(time*40)*.06:0);su.quills.scale.set(puff,puff,puff);spikeShake=Math.max(0,spikeShake-dt*1.5);
+  su.quills.rotation.z=talking?Math.sin(time*18)*.04:0;
+  su.head.rotation.x=talking?Math.sin(time*16)*.08:Math.sin(time*1.3)*.04;
+  const blink=(time%3.7)<.12?.15:1;su.eyes.forEach(e=>e.scale.y=blink);
+  su.spoon.rotation.z=-.35+(talking?Math.sin(time*10)*.4:Math.sin(time*2)*.08);
+  bubble.visible=mode!=='title'&&basketDone()&&!S.finished;bubbleQ.visible=mode==='play'&&!basketDone()&&!S.finished;
+  const bob=Math.sin(time*3)*.12;bubble.position.y=2.75+bob;bubbleQ.position.y=2.75+bob;
+  if(kitchen){kitchen.userData.lid.position.y=1.5+Math.abs(Math.sin(time*6))*.03;}
+  steam.forEach(m=>{m.userData.t=(m.userData.t+dt*.35)%1;const tt=m.userData.t;m.position.set(-11.6+Math.sin(tt*9+m.id)*.12,1.55+tt*1.4,7+Math.cos(tt*7)*.08);m.scale.setScalar(.6+tt*1.4);m.material.opacity=.6*(1-tt);});
+  // hints
+  const hintOn=mode==='play'&&now<hintUntil&&!basketDone();const need=hintOn?neededSections():null;
+  SECTIONS.forEach(s=>{const b=beacons[s.id];b.visible=!!(need&&need.has(s.id));if(b.visible){b.position.y=(s.kind==='crates'?3.35:3.85)+Math.sin(time*4)*.15;b.material.rotation=Math.sin(time*3)*.3;}});
+  // guide arrow
+  let gt=null;
+  if(mode==='play'&&basketDone()&&!S.finished)gt=[-10,8.4];
+  else if(hintOn&&need&&need.size){let bd=1e9;SECTIONS.forEach(s=>{if(!need.has(s.id))return;const d=Math.hypot(s.x-kid.position.x,s.z+1.4-kid.position.z);if(d<bd){bd=d;gt=[s.x,s.z+1.4];}});}
+  if(gt&&Math.hypot(gt[0]-kid.position.x,gt[1]-kid.position.z)>2.5){arrow.visible=true;arrow.position.set(kid.position.x,2.1+Math.sin(time*5)*.12,kid.position.z);arrow.rotation.y=Math.atan2(gt[0]-kid.position.x,gt[1]-kid.position.z);}else arrow.visible=false;
+  // doors
+  const near=kid.position.z>14.5&&Math.abs(kid.position.x)<5;const dOpen=near?1:0;doorL.position.x+=((-1.5-2.8*dOpen)-doorL.position.x)*Math.min(1,dt*5);doorR.position.x+=((1.5+2.8*dOpen)-doorR.position.x)*Math.min(1,dt*5);
+  // dialog typewriter
+  if(mode==='dialog'&&dlg&&dlg.shown<dlg.full.length){const before=Math.floor(dlg.shown);dlg.shown=Math.min(dlg.full.length,dlg.shown+dt*(RM?400:42));if(Math.floor(dlg.shown)!==before){renderDlgText();if(Math.floor(dlg.shown)%3===0)SFX.talk();}}
+  updateConfetti(dt);
+  // camera
+  if(camFocus==='spike'||mode==='title'){const a=spike.rotation.y;tmpV.set(-10+Math.sin(.35)*4.2,2.6,8.4+4.6);tmpL.set(-10,1.25,8.4);
+    if(mode==='title'){tmpV.set(-10+Math.sin(time*.15)*2.2,3,8.4+5.4);tmpL.set(-10,1.5,8.4);}}
+  else{const portrait=stage.clientWidth<stage.clientHeight;tmpV.set(kid.position.x,portrait?12:9.5,kid.position.z+(portrait?8.5:9));tmpL.set(kid.position.x,.6,kid.position.z-1.2);}
+  const k=1-Math.pow(.02,dt);camPos.lerp(tmpV,k);camLook.lerp(tmpL,k);camera.position.copy(camPos);camera.lookAt(camLook);
+  renderer.render(scene,camera);
+  requestAnimationFrame(tick);
+}
+
+/* ======================= START ======================= */
+document.documentElement.lang=lang;
+renderTitle();renderHUD();$('dlgNext').textContent=t('next');
+if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load('900 40px Rubik'),document.fonts.load('800 20px Nunito')]).then(()=>{refreshSigns();refreshTags();for(const k of ['?'].concat(NS)){tagTex[k].dispose();tagTex[k]=makeTagTex(k);}refreshTags();}).catch(()=>{});}
+window.claude&&window.claude.hot&&window.claude.hot.snapshot&&window.claude.hot.snapshot(()=>({S}));
+requestAnimationFrame(tick);
+})();
+</script>

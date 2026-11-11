@@ -22,6 +22,15 @@ Start with the overview, then read the architecture document. Each document is c
 | [PROPOSAL_architecture_consolidation.md](PROPOSAL_architecture_consolidation.md) ([PDF](PROPOSAL_architecture_consolidation.pdf)) | A staged plan to share the scrapers' scoring code, merge them onto one codebase, check the shared database schema automatically, and add a category tree that doesn't belong to either store. It ends with decisions D-01 to D-06. |
 | [AWS_MIGRATION_PLAN.md](AWS_MIGRATION_PLAN.md) ([PDF](AWS_MIGRATION_PLAN.pdf)) | Moving from Replit to AWS: two EC2 instances with an optional RDS database, costs from the AWS price list for Frankfurt and Stockholm, cutover steps, rollback, and decisions M-01 to M-05 |
 
+## Game
+
+[Spike's Nutri Quest](https://rioffe.github.io/abcde-docs/game/) teaches kids the Nutri-Score letters in a 3D supermarket, in Latvian, Russian or English.
+
+- `game/index.html` is the version served by GitHub Pages.
+- `game/spike-nutri-quest.html` is the same game without the `<!doctype>`/`<head>` wrapper, as published to claude.ai.
+
+When you change the game, update both files.
+
 ## Setting up the code repositories
 
 To read the documents next to the code they describe, clone the three repositories into this folder:
