@@ -111,7 +111,7 @@ erDiagram
 | `nutritionfacts.nutri_score_grade` | Calculated by the scraper | Calculated by the scraper | Grade badges, "healthier alternatives" |
 | `product_price_history` | Append-only | Append-only | Latest row = current price (`LATERAL` join) |
 | `product_ingredient_cards` | Materialized view | Materialized view | Ingredient breakdown on product pages |
-| `products.is_hidden` | Set by the scraper UI | Set by the scraper UI | **Not checked.** The API never reads this column. |
+| `products.is_hidden` | Set by the scraper UI | Set by the scraper UI | Not read directly. Hiding a product writes an `is_available = false` price row, and the site shows only available products. |
 
 `rimi_category_code` means different things in the two databases: a text code in Rimi, a foreign key to a Rimi category in Maxima. Keep that in mind when changing either scraper's category logic.
 
@@ -182,5 +182,5 @@ The two NOVA implementations have drifted apart. The same product can get a diff
 1. **Schema changes need coordination.** Changing a shared table in either scraper can break the website's Drizzle mappings without any error until a page fails. There is no shared schema package or contract test.
 2. **The forked code drifts.** Fixes to shared modules such as Nutri-Score, fiber and ingredient processing must be applied twice.
 3. **The website depends on Rimi's category tree.** Maxima products appear in the site only if they have a `rimi_category_code`. Any change to Rimi's tree affects both stores.
-4. **`is_hidden` has no effect on the site.** Both scrapers have an `is_hidden` flag meant to hide products from the browser UI. The website's API doesn't read it (searching `artifacts/api-server` and `lib/db` finds no references), so products marked hidden in the scrapers still appear on abcde.lv.
+4. **Hiding depends on availability rows.** The site never reads `is_hidden`. A product stays off the site only while its latest price row says it's unavailable. Any code path that writes a new "available" row for a hidden product makes it visible again.
 5. **The workers have no always-on host yet.** Both scrapers expect a Reserved VM. Until then the workers run on Autoscale with small chunks, so a large backlog can delay data on the site.
