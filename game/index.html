@@ -1007,7 +1007,7 @@ function setLang(l){lang=l;S.lang=l;save();document.documentElement.lang=l;refre
 /* ---------- Dialog ---------- */
 function showDialog(lines,onDone){dlg={lines,i:0,onDone,shown:0,full:''};mode='dialog';camFocus='spike';$('dialog').hidden=false;$('prompt').hidden=true;$('dlgName').textContent=t('spike');showLine();}
 function curLine(){const ln=dlg.lines[dlg.i];return typeof ln==='function'?ln():ln;}
-function showLine(keep){const ln=curLine();const txt=typeof ln==='string'?ln:L2(ln);dlg.full=txt;if(!keep)dlg.shown=0;else dlg.shown=txt.length;
+function showLine(keep){$('dlgName').textContent=t('spike');const ln=curLine();const txt=typeof ln==='string'?ln:L2(ln);dlg.full=txt;if(!keep)dlg.shown=0;else dlg.shown=txt.length;
   const sc=$('dlgScale');if(ln&&ln.scale){sc.hidden=false;sc.className='ns-strip'+(ln.scale==='all'?'':' pick');sc.innerHTML=stripHTML(ln.scale==='all'?'':ln.scale);}else sc.hidden=true;
   $('dlgNext').textContent=dlg.i===dlg.lines.length-1?t('go'):t('next');renderDlgText();}
 function L2(ln){return ln[lang]!=null?ln[lang]:ln.t;}
