@@ -87,13 +87,7 @@ local function playSound(soundId, speed, volume, delay)
 	end
 end
 
-local reported = {}
-
 function Sfx.play(name)
-	if not reported[name] then
-		reported[name] = true
-		print("[NutriQuest] playing sound:", name, if Sfx.enabled then "" else "(sound is switched off)")
-	end
 	if not Sfx.enabled then
 		return
 	end
@@ -117,8 +111,8 @@ function Sfx.play(name)
 	end
 end
 
--- Load every sound up front so the first play isn't late or silent, and
--- report in the Output window whether each one loaded.
+-- Load every sound up front so the first play isn't late or silent.
+-- Only a sound that fails to load is reported in the Output window.
 task.spawn(function()
 	local list = { template(FALLBACK) }
 	for _, id in Sfx.IDS do
@@ -126,21 +120,13 @@ task.spawn(function()
 			table.insert(list, template(id))
 		end
 	end
-	local ok, err = pcall(function()
+	pcall(function()
 		ContentProvider:PreloadAsync(list, function(contentId, status)
-			if status == Enum.AssetFetchStatus.Success then
-				print("[NutriQuest] sound loaded:", contentId)
-			else
-				warn("[NutriQuest] sound FAILED to load:", contentId, status.Name)
+			if status ~= Enum.AssetFetchStatus.Success then
+				warn("[NutriQuest] sound failed to load:", contentId, status.Name)
 			end
 		end)
 	end)
-	if not ok then
-		warn("[NutriQuest] sound preload error:", err)
-	end
-	for _, s in list do
-		print("[NutriQuest] sound", s.SoundId, "IsLoaded =", s.IsLoaded, "TimeLength =", s.TimeLength)
-	end
 end)
 
 return Sfx
