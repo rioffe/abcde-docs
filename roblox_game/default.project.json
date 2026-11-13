@@ -1,0 +1,69 @@
+{
+  "name": "spike-nutri-quest",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Remotes": {
+        "$className": "Folder",
+        "GetState": { "$className": "RemoteFunction" },
+        "StateChanged": { "$className": "RemoteEvent" },
+        "SetLanguage": { "$className": "RemoteFunction" },
+        "FinishIntro": { "$className": "RemoteFunction" },
+        "Guess": { "$className": "RemoteFunction" },
+        "AddToBasket": { "$className": "RemoteFunction" },
+        "CompleteQuest": { "$className": "RemoteFunction" },
+        "NextQuest": { "$className": "RemoteFunction" },
+        "ResetProgress": { "$className": "RemoteFunction" }
+      }
+    },
+
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+
+    "StarterPlayer": {
+      "$properties": {
+        "CameraMaxZoomDistance": 60
+      },
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+
+    "Workspace": {
+      "$properties": {
+        "FilteringEnabled": true,
+        "StreamingEnabled": false
+      },
+      "Baseplate": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Locked": true,
+          "Color": [0.55, 0.8, 0.47],
+          "Position": [0, -0.75, 0],
+          "Size": [700, 1, 700]
+        }
+      },
+      "SpawnLocation": {
+        "$className": "SpawnLocation",
+        "$properties": {
+          "Anchored": true,
+          "Color": [0.17, 0.42, 0.95],
+          "Duration": 0,
+          "Neutral": true,
+          "Position": [0, -0.4, 45.5],
+          "Size": [10, 1, 10]
+        }
+      }
+    }
+  }
+}

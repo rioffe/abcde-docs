@@ -1,0 +1,7 @@
+# Built place files
+/*.rbxlx
+/*.rbxl
+/*.rbxlx.lock
+/*.rbxl.lock
+
+sourcemap.json
