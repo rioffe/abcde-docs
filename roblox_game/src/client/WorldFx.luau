@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Fonts = require(Shared.Fonts)
 local GameData = require(Shared.GameData)
 local Quest = require(Shared.Quest)
 local Text = require(Shared.Text)
@@ -100,7 +101,7 @@ local function setupSpike()
 	bubbleLabel = Instance.new("TextLabel")
 	bubbleLabel.Size = UDim2.fromScale(1, 1)
 	bubbleLabel.BackgroundTransparency = 1
-	bubbleLabel.Font = Enum.Font.FredokaOne
+	bubbleLabel.FontFace = Fonts.display
 	bubbleLabel.TextScaled = true
 	bubbleLabel.TextColor3 = INK
 	bubbleLabel.Text = "!"
@@ -122,15 +123,9 @@ local function setupBeacons()
 		local star = Instance.new("TextLabel")
 		star.Size = UDim2.fromScale(1, 1)
 		star.BackgroundTransparency = 1
-		star.Text = "★"
+		star.Text = "⭐" -- emoji: no Roblox font has a ★ glyph
 		star.TextScaled = true
-		star.Font = Enum.Font.GothamBlack
-		star.TextColor3 = GOLD
 		star.Parent = gui
-		local outline = Instance.new("UIStroke")
-		outline.Thickness = 3
-		outline.Color = INK
-		outline.Parent = star
 		gui.Parent = anchor
 		beacons[sec.id] = { gui = gui, star = star, base = pos, sec = sec }
 	end
@@ -251,15 +246,19 @@ function WorldFx.localize(lang, state)
 		return Text.get(lang, k)
 	end
 	for _, sign in store.Signs:GetChildren() do
-		local name = sign:FindFirstChild("Name", true)
-		if name and name:IsA("TextLabel") then
-			local sectionId = sign:GetAttribute("SectionId")
-			if sectionId then
-				name.Text = Text.name(lang, GameData.SECTION_BY_ID[sectionId].nm)
-			elseif sign.Name == "KitchenSign" then
-				name.Text = t("kitchen")
-			elseif sign.Name == "BigSign" then
-				name.Text = t("market")
+		local text = nil
+		local sectionId = sign:GetAttribute("SectionId")
+		if sectionId then
+			text = Text.name(lang, GameData.SECTION_BY_ID[sectionId].nm)
+		elseif sign.Name == "KitchenSign" then
+			text = t("kitchen")
+		elseif sign.Name == "BigSign" then
+			text = t("market")
+		end
+		-- Signs are painted on both faces, so update every "Name" label.
+		for _, label in sign:GetDescendants() do
+			if text and label.Name == "Name" and label:IsA("TextLabel") then
+				label.Text = text
 			end
 		end
 	end

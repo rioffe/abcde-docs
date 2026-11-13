@@ -9,7 +9,7 @@ local T = {
 	en = {
 		game = "Spike's Nutri Quest", spike = "Spike", market = "MARKET", kitchen = "Spike’s kitchen",
 		tag = "Help Spike the porcupine chef shop for six home cooking projects, and learn to read the Nutri-Score letters from A to E.",
-		play = "Play", cont = "Continue", newGame = "Start over", next = "Next ▸", go = "Let's go!",
+		play = "Play", cont = "Continue", newGame = "Start over", next = "Next ›", go = "Let's go!",
 		points = "Points", found = "Letters found", quest = "Quest", of = "of",
 		orBetter = "{g} or better", onlyA = "A only", anyGrade = "any letter",
 		look = "Look closer", talk = "Talk to Spike", talkReady = "Show Spike your basket",
@@ -28,8 +28,8 @@ local T = {
 		added = "Great pick! {name} ({g}) is in the basket. +20",
 		dupe = "{name} is already in the basket. Try a different one!",
 		basketDone = "Basket complete! Bring it to Spike at the kitchen.",
-		hintOn = "Follow the stars ★ to the shelves you need!",
-		more = "{n} more to find! I lit up the shelves you need with stars ★.",
+		hintOn = "Follow the stars ⭐ to the shelves you need!",
+		more = "{n} more to find! I lit up the shelves you need with stars ⭐.",
 		peek = "Let me peek in your basket…", yay = "Wonderful! Everything we need. You are a natural!",
 		done = "Quest complete!", s1 = "Finished the list", s2 = "No wrong picks", s3 = "Good letter guesser", nextQ = "Next quest", finish = "Finish",
 		finalT = "You are a Nutri-Master!", again = "Play again",
@@ -38,14 +38,14 @@ local T = {
 		h1 = "Walk with W A S D, the arrow keys or the thumbstick.",
 		h2 = "Walk up to a product and press E, or tap its button, to look closer and guess its letter. You can also press the letter keys.",
 		h3 = "Put the right products in your basket. The list shows which letter each one needs.",
-		h4 = "Stuck? Press ★ (or H) or talk to Spike: the shelves you need light up.",
+		h4 = "Stuck? Press ⭐ (or H) or talk to Spike: the shelves you need light up.",
 		hScale = "A (dark green) is the healthiest choice. E (red) is for small amounts now and then.",
 		sound = "Sound", lang = "Language", hint = "Hint",
 	},
 	lv = {
 		game = "Adatiņa Nutri misija", spike = "Adatiņš", market = "TIRGUS", kitchen = "Adatiņa virtuve",
 		tag = "Palīdzi dzeloņcūkai pavāram Adatiņam iepirkties sešiem mājas ēdienu projektiem un iemācies lasīt Nutri-Score burtus no A līdz E.",
-		play = "Spēlēt", cont = "Turpināt", newGame = "Sākt no jauna", next = "Tālāk ▸", go = "Aiziet!",
+		play = "Spēlēt", cont = "Turpināt", newGame = "Sākt no jauna", next = "Tālāk ›", go = "Aiziet!",
 		points = "Punkti", found = "Atrasti burti", quest = "Misija", of = "no",
 		orBetter = "{g} vai labāk", onlyA = "tikai A", anyGrade = "jebkurš burts",
 		look = "Apskatīt", talk = "Runāt ar Adatiņu", talkReady = "Parādi Adatiņam grozu",
@@ -64,8 +64,8 @@ local T = {
 		added = "Lieliska izvēle! {name} ({g}) ir grozā. +20",
 		dupe = "{name} jau ir grozā. Pamēģini ko citu!",
 		basketDone = "Grozs pilns! Nes to Adatiņam uz virtuvi.",
-		hintOn = "Seko zvaigznēm ★ līdz vajadzīgajiem plauktiem!",
-		more = "Vēl jāatrod: {n}! Es iededzu zvaigznes ★ virs vajadzīgajiem plauktiem.",
+		hintOn = "Seko zvaigznēm ⭐ līdz vajadzīgajiem plauktiem!",
+		more = "Vēl jāatrod: {n}! Es iededzu zvaigznes ⭐ virs vajadzīgajiem plauktiem.",
 		peek = "Paskatīšos tavā grozā…", yay = "Brīnišķīgi! Viss, kas vajadzīgs. Tev tas padodas!",
 		done = "Misija paveikta!", s1 = "Saraksts izpildīts", s2 = "Bez kļūdām", s3 = "Labs burtu minētājs", nextQ = "Nākamā misija", finish = "Pabeigt",
 		finalT = "Tu esi Nutri meistars!", again = "Spēlēt vēlreiz",
@@ -74,14 +74,14 @@ local T = {
 		h1 = "Staigā ar W A S D, bultiņām vai kursorsviru.",
 		h2 = "Pieej pie produkta un nospied E vai pieskaries pogai, lai to apskatītu un uzminētu burtu. Var spiest arī burtu taustiņus.",
 		h3 = "Liec grozā pareizos produktus. Sarakstā redzams, kāds burts katram vajadzīgs.",
-		h4 = "Nezini, kur iet? Nospied ★ (vai H) vai runā ar Adatiņu: vajadzīgie plaukti iedegsies.",
+		h4 = "Nezini, kur iet? Nospied ⭐ (vai H) vai runā ar Adatiņu: vajadzīgie plaukti iedegsies.",
 		hScale = "A (tumši zaļš) ir veselīgākā izvēle. E (sarkans) ir mazām porcijām un reizēm.",
 		sound = "Skaņa", lang = "Valoda", hint = "Padoms",
 	},
 	ru = {
 		game = "Нутри-квест Колючкина", spike = "Колючкин", market = "МАРКЕТ", kitchen = "Кухня Колючкина",
 		tag = "Помоги дикобразу-повару Колючкину сделать покупки для шести домашних блюд и научись читать буквы Nutri-Score от A до E.",
-		play = "Играть", cont = "Продолжить", newGame = "Начать заново", next = "Дальше ▸", go = "Вперёд!",
+		play = "Играть", cont = "Продолжить", newGame = "Начать заново", next = "Дальше ›", go = "Вперёд!",
 		points = "Очки", found = "Найдено букв", quest = "Задание", of = "из",
 		orBetter = "{g} или лучше", onlyA = "только A", anyGrade = "любая буква",
 		look = "Рассмотреть", talk = "Поговорить с Колючкиным", talkReady = "Покажи Колючкину корзину",
@@ -100,8 +100,8 @@ local T = {
 		added = "Отличный выбор! «{name}» ({g}) в корзине. +20",
 		dupe = "«{name}» уже в корзине. Попробуй что-нибудь другое!",
 		basketDone = "Корзина собрана! Неси её Колючкину на кухню.",
-		hintOn = "Иди за звёздочками ★ к нужным полкам!",
-		more = "Осталось найти: {n}! Я зажёг звёздочки ★ над нужными полками.",
+		hintOn = "Иди за звёздочками ⭐ к нужным полкам!",
+		more = "Осталось найти: {n}! Я зажёг звёздочки ⭐ над нужными полками.",
 		peek = "Дай-ка загляну в корзину…", yay = "Чудесно! Всё, что нужно. У тебя талант!",
 		done = "Задание выполнено!", s1 = "Список собран", s2 = "Без ошибок", s3 = "Отлично угадываешь буквы", nextQ = "Следующее задание", finish = "Завершить",
 		finalT = "Ты — Нутри-мастер!", again = "Играть снова",
@@ -110,7 +110,7 @@ local T = {
 		h1 = "Ходи клавишами W A S D, стрелками или джойстиком.",
 		h2 = "Подойди к продукту и нажми E или кнопку на экране, чтобы рассмотреть его и угадать букву. Можно нажимать и клавиши с буквами.",
 		h3 = "Клади в корзину нужные продукты. В списке видно, какая буква нужна каждому.",
-		h4 = "Не знаешь, куда идти? Нажми ★ (или H) или поговори с Колючкиным: нужные полки засветятся.",
+		h4 = "Не знаешь, куда идти? Нажми ⭐ (или H) или поговори с Колючкиным: нужные полки засветятся.",
 		hScale = "A (тёмно-зелёная) — самый полезный выбор. E (красная) — понемногу и изредка.",
 		sound = "Звук", lang = "Язык", hint = "Подсказка",
 	},
@@ -206,6 +206,43 @@ end
 function Text.lesson(lang, key)
 	local lesson = LESSONS[key]
 	return lesson[lang] or lesson.en
+end
+
+-- Upper/lower case that also handles Latvian and Cyrillic letters.
+-- (string.upper/lower only know A–Z, so "Adatiņš" became "ADATIņš".)
+local UPPER, LOWER = {}, {}
+local function pair(lower, upper)
+	UPPER[lower] = upper
+	LOWER[upper] = lower
+end
+for c = 0x61, 0x7A do -- a–z
+	pair(c, c - 0x20)
+end
+for c = 0x430, 0x44F do -- а–я
+	pair(c, c - 0x20)
+end
+for c = 0x450, 0x45F do -- ѐ–џ, incl. ё
+	pair(c, c - 0x50)
+end
+-- Latvian: ā č ē ģ ī ķ ļ ņ š ū ž
+for _, c in { 0x101, 0x10D, 0x113, 0x123, 0x12B, 0x137, 0x13C, 0x146, 0x161, 0x16B, 0x17E } do
+	pair(c, c - 1)
+end
+
+local function convert(s, map)
+	local out = {}
+	for _, code in utf8.codes(s) do
+		table.insert(out, utf8.char(map[code] or code))
+	end
+	return table.concat(out)
+end
+
+function Text.upper(s)
+	return convert(s, UPPER)
+end
+
+function Text.lower(s)
+	return convert(s, LOWER)
 end
 
 return Text

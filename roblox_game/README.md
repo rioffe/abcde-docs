@@ -21,6 +21,20 @@ To save progress between sessions in Studio, turn on
 **Game Settings → Security → Enable Studio Access to API Services**.
 Without it the game still runs, but progress resets each time.
 
+## Sounds
+
+The web game's sound effects are recreated as WAV files in `assets/sounds/`
+by `python3 tools/make_sounds.py` (same notes, wave shapes and envelopes).
+Roblox can only play audio uploaded to Roblox, so to use them:
+
+1. In Studio, open **View → Asset Manager → Bulk Import** and pick the ten
+   `assets/sounds/nutri_*.wav` files.
+2. Right-click each uploaded sound → **Copy Asset ID**, and paste it into
+   `Sfx.IDS` in `src/client/Sfx.luau` (e.g. `open = "rbxassetid://1234567890"`).
+
+Until then the game plays the same melodies on Roblox's built-in volume-slider
+chime, re-pitched note by note.
+
 ## How it plays
 
 - Walk with W A S D, the arrow keys or the thumbstick. A shopping cart rolls in front of you.

@@ -150,6 +150,17 @@ local function buildCart(player, character)
 		Transparency = 0.6,
 		Material = Enum.Material.Glass,
 	}))
+	-- Invisible bumper around the cart: it collides, so the cart stops at
+	-- shelves and stands instead of driving into them. No friction, so it
+	-- slides along a shelf rather than sticking; it sits above the floor so
+	-- it never drags.
+	Build.box(cart, origin, 0.66, 0.75, 0.6, ink, 0, 0.55, 0, Build.merge(CART_PART, {
+		Name = "Bumper",
+		Transparency = 1,
+		CanCollide = true,
+		CanQuery = true,
+		CustomPhysicalProperties = PhysicalProperties.new(0.01, 0, 0, 100, 100),
+	}))
 	-- Rim and corner bars
 	for _, z in { -0.275, 0.275 } do
 		Build.box(cart, origin, 0.64, 0.03, 0.03, ink, 0, 0.82, z, CART_PART)

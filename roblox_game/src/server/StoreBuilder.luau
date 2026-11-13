@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Fonts = require(Shared.Fonts)
 local GameData = require(Shared.GameData)
 
 local Build = require(script.Parent.Build)
@@ -70,22 +71,26 @@ local function buildShell(parent)
 	-- Walls with a blue stripe; the front wall is low with a gap for the doors
 	local wall, stripe = hex("#f7fbff"), Config.UI.accent
 	local walls = Build.folder("Walls", parent)
-	Build.box(walls, O, 40.6, 5, 0.3, wall, 0, 2.5, -18.15)
+	-- Pieces meet edge to edge instead of overlapping: two faces in (almost)
+	-- the same place flicker. The back wall stops at the side walls; the
+	-- stripes sit on the wall surfaces and meet in the corners.
+	Build.box(walls, O, 40, 5, 0.3, wall, 0, 2.5, -18.15)
 	Build.box(walls, O, 0.3, 5, 36.6, wall, -20.15, 2.5, 0)
 	Build.box(walls, O, 0.3, 5, 36.6, wall, 20.15, 2.5, 0)
 	Build.box(walls, O, 17, 1.2, 0.3, wall, -11.5, 0.6, 18.15)
 	Build.box(walls, O, 17, 1.2, 0.3, wall, 11.5, 0.6, 18.15)
-	Build.box(walls, O, 40.6, 0.35, 0.32, stripe, 0, 1.4, -17.98, DECOR)
-	Build.box(walls, O, 0.32, 0.35, 36.6, stripe, -19.98, 1.4, 0, DECOR)
-	Build.box(walls, O, 0.32, 0.35, 36.6, stripe, 19.98, 1.4, 0, DECOR)
+	Build.box(walls, O, 39.68, 0.35, 0.16, stripe, 0, 1.4, -17.92, DECOR)
+	Build.box(walls, O, 0.16, 0.35, 36, stripe, -19.92, 1.4, 0, DECOR)
+	Build.box(walls, O, 0.16, 0.35, 36, stripe, 19.92, 1.4, 0, DECOR)
 
-	-- Entrance arch in the five Nutri-Score colours
+	-- Entrance arch in the five Nutri-Score colours. Posts stop under the
+	-- beam and are well thicker than the low wall they pass through.
 	for i, g in Config.NS do
 		Build.box(walls, O, 0.3, 0.6, 0.3, Config.NS_COLORS[g], -3.2 + (i - 1) * 1.6, 3.15, 18.15)
 	end
-	Build.box(walls, O, 0.3, 3, 0.3, stripe, -3.2, 1.5, 18.15)
-	Build.box(walls, O, 0.3, 3, 0.3, stripe, 3.2, 1.5, 18.15)
-	Build.box(walls, O, 6.7, 0.25, 0.32, stripe, 0, 2.95, 18.15)
+	Build.box(walls, O, 0.3, 2.825, 0.5, stripe, -3.2, 1.4125, 18.15)
+	Build.box(walls, O, 0.3, 2.825, 0.5, stripe, 3.2, 1.4125, 18.15)
+	Build.box(walls, O, 6.6, 0.25, 0.5, stripe, 0, 2.95, 18.15)
 
 	-- Sliding glass doors (the server opens them when someone walks up)
 	local doors = Build.folder("Doors", parent)
@@ -114,7 +119,7 @@ local function buildBigSign(parent)
 		tile.BackgroundColor3 = Config.NS_COLORS[g]
 		tile.Text = g
 		tile.TextScaled = true
-		tile.Font = Enum.Font.FredokaOne
+		tile.FontFace = Fonts.display
 		tile.TextColor3 = if g == "C" then INK else WHITE
 		tile.Parent = bg
 		local c = Instance.new("UICorner")
@@ -129,7 +134,7 @@ local function buildBigSign(parent)
 	name.Size = UDim2.fromScale(420 / 1024, 0.6)
 	name.Text = "MARKET"
 	name.TextScaled = true
-	name.Font = Enum.Font.FredokaOne
+	name.FontFace = Fonts.display
 	name.TextColor3 = WHITE
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.Parent = bg
@@ -200,7 +205,7 @@ local function buildTag(parent, position)
 	letter.Size = UDim2.fromScale(1, 1)
 	letter.Text = "?"
 	letter.TextScaled = true
-	letter.Font = Enum.Font.FredokaOne
+	letter.FontFace = Fonts.display
 	letter.TextColor3 = INK
 	letter.Parent = bg
 end
@@ -221,17 +226,21 @@ local function buildSection(sec, fixtures, signs, products)
 			Build.box(group, origin, 0.08, 1.72, 0.08, INK, dx, 1.44, -0.44, DECOR)
 		end
 	else
+		-- The pieces meet edge to edge and never overlap: two faces in (almost)
+		-- the same place flicker. Side trims hold everything between them, the
+		-- back panel sits on the base, and the top trim caps it all.
 		local fridge = sec.kind == "fridge"
-		Build.box(group, origin, sec.len, 0.42, 1.2, trim, 0, 0.21, 0)
-		Build.box(group, origin, sec.len, 2.1, 0.1, if fridge then hex("#dff2ff") else hex("#f2f5fb"), 0, 1.05, -0.55)
-		for _, y in { 0.48, 1.28 } do
-			Build.box(group, origin, sec.len, 0.05, 1.15, hex("#dfe6f2"), 0, y, 0)
-		end
+		local inner = sec.len - 0.08 -- between the side trims
+		Build.box(group, origin, 0.08, 2.06, 1.2, trim, -half, 1.03, 0)
+		Build.box(group, origin, 0.08, 2.06, 1.2, trim, half, 1.03, 0)
 		Build.box(group, origin, sec.len + 0.08, 0.12, 1.2, trim, 0, 2.12, 0)
-		Build.box(group, origin, 0.08, 2.18, 1.2, trim, -half, 1.09, 0)
-		Build.box(group, origin, 0.08, 2.18, 1.2, trim, half, 1.09, 0)
+		Build.box(group, origin, inner, 0.42, 1.2, trim, 0, 0.21, 0)
+		Build.box(group, origin, inner, 1.64, 0.1, if fridge then hex("#dff2ff") else hex("#f2f5fb"), 0, 1.24, -0.55)
+		for _, y in { 0.48, 1.28 } do
+			Build.box(group, origin, inner, 0.05, 1.075, hex("#dfe6f2"), 0, y, 0.0375)
+		end
 		if fridge then
-			local strip = Build.box(group, origin, sec.len - 0.2, 0.08, 0.08, WHITE, 0, 2.02, 0.5, Build.merge(DECOR, {
+			local strip = Build.box(group, origin, sec.len - 0.2, 0.08, 0.08, WHITE, 0, 2.0, 0.5, Build.merge(DECOR, {
 				Material = Enum.Material.Neon,
 			}))
 			local light = Instance.new("SurfaceLight")
@@ -251,7 +260,10 @@ local function buildSection(sec, fixtures, signs, products)
 		Transparency = 1,
 	}))
 	sign:SetAttribute("SectionId", sec.id)
-	Build.signGui(sign, Enum.NormalId.Back, trim, sec.e, sec.nm[1])
+	-- Paint both faces so the sign isn't see-through from behind.
+	for _, face in { Enum.NormalId.Back, Enum.NormalId.Front } do
+		Build.signGui(sign, face, trim, sec.e, sec.nm[1])
+	end
 
 	-- Products
 	for i, p in list do
@@ -363,7 +375,10 @@ local function buildKitchen(parent, signs)
 		Name = "KitchenSign",
 		Transparency = 1,
 	}))
-	Build.signGui(sign, Enum.NormalId.Back, WHITE, nil, "Spike’s kitchen", Config.UI.quill)
+	-- Paint both faces so the sign isn't see-through from behind.
+	for _, face in { Enum.NormalId.Back, Enum.NormalId.Front } do
+		Build.signGui(sign, face, WHITE, nil, "Spike’s kitchen", Config.UI.quill)
+	end
 	for _, dx in { -1.8, 1.8 } do
 		Build.box(parent, origin, 0.08, 1.2, 0.08, pink, dx, 1.6, -0.45, DECOR)
 	end

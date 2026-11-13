@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Fonts = require(Shared.Fonts)
 local GameData = require(Shared.GameData)
 local NutriScore = require(Shared.NutriScore)
 local Quest = require(Shared.Quest)
@@ -24,8 +25,8 @@ local NS = Config.NS
 local NSC = Config.NS_COLORS
 local S = Config.SCALE
 local WHITE = Color3.new(1, 1, 1)
-local DISPLAY = Enum.Font.FredokaOne
-local BODY = Enum.Font.GothamBold
+local DISPLAY = Fonts.display
+local BODY = Fonts.body
 
 local Ui = {}
 
@@ -117,7 +118,7 @@ end
 local function label(props, children)
 	local base = {
 		BackgroundTransparency = 1,
-		Font = BODY,
+		FontFace = BODY,
 		TextColor3 = C.ink,
 		TextSize = 18,
 		TextWrapped = true,
@@ -163,7 +164,7 @@ local function button(props)
 		BackgroundTransparency = 0,
 		BackgroundColor3 = props.color or C.accent,
 		Text = props.text or "",
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = props.textSize or 22,
 		TextColor3 = props.textColor or WHITE,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -190,7 +191,7 @@ local function iconButton(text, onClick, order, parent)
 		Size = UDim2.fromOffset(42, 42),
 		BackgroundColor3 = WHITE,
 		Text = text,
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = 20,
 		TextColor3 = C.ink,
 		AutoButtonColor = true,
@@ -209,7 +210,7 @@ local function pill(order, parent)
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundTransparency = 0,
 		BackgroundColor3 = WHITE,
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = 18,
 		TextWrapped = false,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -245,7 +246,7 @@ local function mini(grade, size, order)
 		BackgroundTransparency = 0,
 		BackgroundColor3 = NSC[grade],
 		Text = grade,
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = math.floor(size * 0.72),
 		TextColor3 = if grade == "C" then C.ink else WHITE,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -264,15 +265,16 @@ local function strip(selected, pick, parent, order)
 		LayoutOrder = order or 0,
 		Parent = parent,
 	}, { corner(14), outline(3), pad(10, 0), hlist(2, nil, Enum.VerticalAlignment.Center) })
-	local holder = frame({ Size = UDim2.fromOffset(18, 44), LayoutOrder = 0, Parent = f })
+	local holder = frame({ Size = UDim2.fromOffset(16, 54), LayoutOrder = 0, Parent = f })
 	label({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(44, 14),
+		Size = UDim2.fromOffset(54, 12),
 		Rotation = -90,
 		Text = "NUTRI-SCORE",
-		Font = DISPLAY,
-		TextSize = 8,
+		FontFace = DISPLAY,
+		TextScaled = true,
+		TextWrapped = false,
 		TextColor3 = C.muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Parent = holder,
@@ -284,7 +286,7 @@ local function strip(selected, pick, parent, order)
 			BackgroundTransparency = if pick and not on then 0.5 else 0,
 			BackgroundColor3 = NSC[g],
 			Text = g,
-			Font = DISPLAY,
+			FontFace = DISPLAY,
 			TextSize = if on then 30 else 24,
 			TextTransparency = if pick and not on then 0.35 else 0,
 			TextColor3 = if g == "C" then C.ink else WHITE,
@@ -385,7 +387,7 @@ local function closeButton(parent, onClick)
 		Size = UDim2.fromOffset(38, 38),
 		BackgroundColor3 = WHITE,
 		Text = "×",
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = 26,
 		TextColor3 = C.ink,
 		ZIndex = 3,
@@ -416,7 +418,7 @@ local function buildHud()
 	local quest = frame({
 		Name = "Quest",
 		Position = UDim2.fromOffset(12, 10),
-		Size = UDim2.fromOffset(380, 0),
+		Size = UDim2.fromOffset(440, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 0,
 		BackgroundColor3 = C.panel,
@@ -435,7 +437,7 @@ local function buildHud()
 		Parent = quest,
 	}, { corner(12), pad(12, 9), vlist(4) })
 	local row = frame({ Size = UDim2.new(1, 0, 0, 22), LayoutOrder = 1, Parent = head })
-	refs.qNum = label({ Size = UDim2.new(1, -70, 1, 0), TextColor3 = WHITE, TextTransparency = 0.2, TextSize = 14, Font = DISPLAY, Parent = row })
+	refs.qNum = label({ Size = UDim2.new(1, -70, 1, 0), TextColor3 = WHITE, TextTransparency = 0.2, TextSize = 14, FontFace = DISPLAY, Parent = row })
 	refs.qProg = label({
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
@@ -443,7 +445,7 @@ local function buildHud()
 		BackgroundTransparency = 0,
 		BackgroundColor3 = WHITE,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = 16,
 		Parent = row,
 	}, { round() })
@@ -451,7 +453,7 @@ local function buildHud()
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		TextColor3 = WHITE,
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = 22,
 		LayoutOrder = 2,
 		Parent = head,
@@ -475,27 +477,26 @@ local function buildHud()
 	hudScale(bar)
 	refs.scorePill = pill(1, bar)
 	refs.foundPill = pill(2, bar)
-	refs.hintBtn = iconButton("★", handlers.onHint, 3, bar)
-	refs.hintBtn.TextColor3 = C.gold
-	refs.hintBtn.TextSize = 24
+	refs.hintBtn = iconButton("⭐", handlers.onHint, 3, bar)
+	refs.hintBtn.TextSize = 22
 	refs.langBtn = iconButton("EN", handlers.onCycleLang, 4, bar)
 	refs.langBtn.TextSize = 16
-	refs.soundBtn = iconButton("♪", handlers.onSound, 5, bar)
+	refs.soundBtn = iconButton("🔊", handlers.onSound, 5, bar)
 	refs.helpBtn = iconButton("?", handlers.onHelp, 6, bar)
 	refs.bar = bar
 end
 
 local function needChips(max, parent)
 	if max == "E" then
-		mini("any", 20, 1).Parent = parent
-		label({ Text = t("anyGrade"), TextSize = 14, TextColor3 = C.muted, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 20), TextWrapped = false, LayoutOrder = 2, Parent = parent })
+		mini("any", 26, 1).Parent = parent
+		label({ Text = t("anyGrade"), TextSize = 17, TextColor3 = C.muted, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 26), TextWrapped = false, LayoutOrder = 2, Parent = parent })
 	elseif max == "A" then
-		mini("A", 20, 1).Parent = parent
-		label({ Text = t("onlyA"), TextSize = 14, TextColor3 = C.muted, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 20), TextWrapped = false, LayoutOrder = 2, Parent = parent })
+		mini("A", 26, 1).Parent = parent
+		label({ Text = t("onlyA"), TextSize = 17, TextColor3 = C.muted, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 26), TextWrapped = false, LayoutOrder = 2, Parent = parent })
 	else
-		mini(max, 20, 1).Parent = parent
+		mini(max, 26, 1).Parent = parent
 		local words = string.gsub(t("orBetter", { g = "" }), "^%s+", "")
-		label({ Text = words, TextSize = 14, TextColor3 = C.muted, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 20), TextWrapped = false, LayoutOrder = 2, Parent = parent })
+		label({ Text = words, TextSize = 17, TextColor3 = C.muted, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 26), TextWrapped = false, LayoutOrder = 2, Parent = parent })
 	end
 end
 
@@ -505,7 +506,7 @@ local function renderSlots(state)
 		local id = state.filled[i]
 		local p = id and GameData.PRODUCT_BY_ID[id]
 		local row = frame({
-			Size = UDim2.new(1, 0, 0, 46),
+			Size = UDim2.new(1, 0, 0, 56),
 			BackgroundTransparency = 0,
 			BackgroundColor3 = if p then C.doneRow else C.panel2,
 			LayoutOrder = i,
@@ -513,32 +514,32 @@ local function renderSlots(state)
 		}, { corner(12) })
 		label({
 			Text = if p then p.e else def.e,
-			TextSize = 26,
+			TextSize = 32,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextTransparency = if p then 0 else 0.45,
 			Position = UDim2.fromOffset(6, 0),
-			Size = UDim2.new(0, 34, 1, 0),
+			Size = UDim2.new(0, 40, 1, 0),
 			Parent = row,
 		})
 		local name = if p then Text.name(lang, p.nm) else Text.name(lang, def.lbl)
 		label({
 			Text = if p then "<s>" .. escape(name) .. "</s>" else escape(name),
 			RichText = true,
-			TextSize = 16,
+			TextSize = 20,
 			TextColor3 = if p then C.muted else C.ink,
-			Position = UDim2.fromOffset(46, 0),
-			Size = UDim2.new(1, -170, 1, 0),
+			Position = UDim2.fromOffset(54, 0),
+			Size = UDim2.new(1, -205, 1, 0),
 			Parent = row,
 		})
 		local need = frame({
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -8, 0.5, 0),
-			Size = UDim2.fromOffset(0, 22),
+			Size = UDim2.fromOffset(0, 26),
 			AutomaticSize = Enum.AutomaticSize.X,
 			Parent = row,
 		}, { hlist(4, Enum.HorizontalAlignment.Right) })
 		if p then
-			mini(p.ns.grade, 22, 1).Parent = need
+			mini(p.ns.grade, 26, 1).Parent = need
 		else
 			needChips(def.max, need)
 		end
@@ -551,7 +552,7 @@ function Ui.renderHUD(state, soundOn)
 	end
 	local q = GameData.QUESTS[state.q]
 	local slots = Quest.slotsOf(state.q)
-	refs.qNum.Text = string.upper(t("quest")) .. " " .. state.q .. "/" .. #GameData.QUESTS
+	refs.qNum.Text = Text.upper(t("quest")) .. " " .. state.q .. "/" .. #GameData.QUESTS
 	refs.qTitle.Text = q.e .. " " .. Text.name(lang, q.title)
 	refs.qProg.Text = (#slots - Quest.remaining(state.filled)) .. "/" .. #slots
 	renderSlots(state)
@@ -562,8 +563,8 @@ function Ui.renderHUD(state, soundOn)
 	end
 	refs.scorePill.Text = t("points") .. " " .. state.score
 	refs.foundPill.Text = t("found") .. " " .. found .. "/" .. #GameData.PRODUCTS
-	refs.langBtn.Text = string.upper(lang)
-	refs.soundBtn.TextTransparency = if soundOn then 0 else 0.6
+	refs.langBtn.Text = Text.upper(lang)
+	refs.soundBtn.Text = if soundOn then "🔊" else "🔇"
 end
 
 function Ui.setHudVisible(questVisible, barVisible)
@@ -578,7 +579,7 @@ function Ui.pop(text)
 		Position = UDim2.new(0.5, 0, 0, 58),
 		Size = UDim2.fromOffset(120, 44),
 		Text = text,
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = 36,
 		TextColor3 = NSC.A,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -657,7 +658,7 @@ local function buildDialog()
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = dialog,
 	}, { vlist(8) })
-	refs.dlgName = label({ Font = DISPLAY, TextColor3 = C.quill, TextSize = 19, Size = UDim2.new(1, 0, 0, 22), LayoutOrder = 1, Parent = body })
+	refs.dlgName = label({ FontFace = DISPLAY, TextColor3 = C.quill, TextSize = 19, Size = UDim2.new(1, 0, 0, 22), LayoutOrder = 1, Parent = body })
 	refs.dlgText = label({
 		TextSize = 23,
 		Size = UDim2.new(1, 0, 0, 0),
@@ -684,7 +685,7 @@ end
 
 -- Shows one line. `visible` is how many characters are typed out so far.
 function Ui.setDialog(name, text, scale, nextLabel, visible)
-	refs.dlgName.Text = string.upper(name)
+	refs.dlgName.Text = Text.upper(name)
 	refs.dlgText.Text = text
 	refs.dlgText.MaxVisibleGraphemes = visible
 	refs.dlgNextFace.Text = nextLabel
@@ -742,7 +743,7 @@ local function chip(value, kind, skipped)
 		BackgroundColor3 = bg,
 		Text = text,
 		RichText = true,
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = 16,
 		TextColor3 = fg,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -806,7 +807,7 @@ local function buildCard()
 		}),
 	})
 	refs.cardSec = label({ Size = UDim2.new(1, 0, 0, 16), TextSize = 13, TextColor3 = C.muted, LayoutOrder = 1, Parent = info })
-	refs.cardName = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Font = DISPLAY, TextSize = 26, LayoutOrder = 2, Parent = info })
+	refs.cardName = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, FontFace = DISPLAY, TextSize = 26, LayoutOrder = 2, Parent = info })
 	refs.cardPer = label({ Size = UDim2.new(1, 0, 0, 16), TextSize = 14, TextColor3 = C.muted, LayoutOrder = 3, Parent = info })
 	closeButton(head, function()
 		handlers.onCloseCard()
@@ -816,7 +817,7 @@ local function buildCard()
 
 	-- Guess area
 	local guess = frame({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 3, Parent = sheet }, { vlist(10, Enum.HorizontalAlignment.Center) })
-	refs.guessQ = label({ Size = UDim2.new(1, 0, 0, 30), Font = DISPLAY, TextSize = 26, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 1, Parent = guess })
+	refs.guessQ = label({ Size = UDim2.new(1, 0, 0, 30), FontFace = DISPLAY, TextSize = 26, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 1, Parent = guess })
 	local row = frame({ Size = UDim2.new(1, 0, 0, 76), LayoutOrder = 2, Parent = guess }, { hlist(10, Enum.HorizontalAlignment.Center) })
 	for i, g in NS do
 		button({
@@ -838,7 +839,7 @@ local function buildCard()
 
 	-- Reveal area
 	local reveal = frame({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 4, Visible = false, Parent = sheet }, { vlist(10, Enum.HorizontalAlignment.Center) })
-	refs.verdict = label({ Size = UDim2.new(1, 0, 0, 30), Font = DISPLAY, TextSize = 26, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 1, Parent = reveal })
+	refs.verdict = label({ Size = UDim2.new(1, 0, 0, 30), FontFace = DISPLAY, TextSize = 26, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 1, Parent = reveal })
 	refs.cardStrip = frame({ Size = UDim2.fromOffset(0, 60), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 2, Parent = reveal })
 	refs.calc = frame({ Size = UDim2.new(1, 0, 0, 74), LayoutOrder = 3, Parent = reveal }, { hlist(6, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Top) })
 	refs.why = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 17, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 4, Parent = reveal })
@@ -857,7 +858,7 @@ local function calcColumn(order, value, kind, caption)
 		BackgroundTransparency = 0,
 		BackgroundColor3 = if kind == "bad" then C.bad elseif kind == "good" then C.good else WHITE,
 		Text = tostring(value),
-		Font = DISPLAY,
+		FontFace = DISPLAY,
 		TextSize = 24,
 		TextColor3 = if kind == "res" then C.ink else WHITE,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -868,7 +869,7 @@ local function calcColumn(order, value, kind, caption)
 end
 
 local function calcSign(order, text)
-	label({ Size = UDim2.fromOffset(16, 46), Text = text, Font = DISPLAY, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = order, Parent = refs.calc })
+	label({ Size = UDim2.fromOffset(16, 46), Text = text, FontFace = DISPLAY, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = order, Parent = refs.calc })
 end
 
 -- card = { p = product, guess = letter | "seen" | nil }
@@ -880,7 +881,7 @@ function Ui.renderCard(card)
 
 	refs.cardEmoji.Text = p.e
 	refs.cardEmoji.BackgroundColor3 = Color3.fromHex(p.c)
-	refs.cardSec.Text = sec.e .. " " .. string.upper(Text.name(lang, sec.nm))
+	refs.cardSec.Text = sec.e .. " " .. Text.upper(Text.name(lang, sec.nm))
 	refs.cardName.Text = Text.name(lang, p.nm)
 	refs.cardPer.Text = if p.cat == "drink" or p.cat == "water" then t("per100ml") else t("per100g")
 	renderFacts(p, revealed)
@@ -914,7 +915,7 @@ function Ui.renderCard(card)
 		calcColumn(3, r.P, "good", t("goodPts"))
 		calcSign(4, "=")
 		calcColumn(5, r.S, "res", t("scoreW"))
-		calcSign(6, "→")
+		calcSign(6, "›")
 		local gradeCol = frame({ Size = UDim2.fromOffset(52, 74), LayoutOrder = 7, Parent = refs.calc })
 		local m = mini(r.grade, 46)
 		outline(3).Parent = m
@@ -936,9 +937,9 @@ function Ui.renderCard(card)
 		if not bestBad then
 			refs.why.Text = t("whyNoBad")
 		elseif bestGood then
-			refs.why.Text = t("why", { bad = string.lower(t(bestBad)), good = string.lower(t(bestGood)) })
+			refs.why.Text = t("why", { bad = Text.lower(t(bestBad)), good = Text.lower(t(bestGood)) })
 		else
-			refs.why.Text = t("whyNoGood", { bad = string.lower(t(bestBad)) })
+			refs.why.Text = t("whyNoGood", { bad = Text.lower(t(bestBad)) })
 		end
 	end
 
@@ -979,10 +980,10 @@ local completeData = nil
 local function buildComplete()
 	local dim, sheet = modalSheet("Complete", 460)
 	refs.complete = dim
-	refs.cTitle = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Font = DISPLAY, TextSize = 30, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 1, Parent = sheet })
+	refs.cTitle = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, FontFace = DISPLAY, TextSize = 30, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 1, Parent = sheet })
 	refs.cStars = frame({ Size = UDim2.new(1, 0, 0, 72), LayoutOrder = 2, Parent = sheet }, { hlist(8, Enum.HorizontalAlignment.Center) })
 	refs.cList = frame({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 3, Parent = sheet }, { vlist(6) })
-	refs.cPts = label({ Size = UDim2.new(1, 0, 0, 30), Font = DISPLAY, TextSize = 24, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 4, Parent = sheet })
+	refs.cPts = label({ Size = UDim2.new(1, 0, 0, 30), FontFace = DISPLAY, TextSize = 24, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 4, Parent = sheet })
 	local _, nextFace = button({ size = UDim2.fromOffset(260, 58), textSize = 26, order = 5, parent = sheet, onClick = handlers.onNextQuest })
 	refs.cNextFace = nextFace
 end
@@ -991,18 +992,17 @@ local function bigStars(container, count, total)
 	clear(container)
 	for i = 1, total do
 		local on = i <= count
+		-- ⭐ is an emoji: no Roblox font has a ★ glyph. Missed stars are faded.
 		local star = label({
 			Size = UDim2.fromOffset(70, 70),
-			Text = "★",
-			Font = Enum.Font.GothamBlack,
-			TextSize = 64,
-			TextColor3 = if on then C.gold else C.starOff,
+			Text = "⭐",
+			TextSize = 58,
+			TextTransparency = if on then 0 else 0.78,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			LayoutOrder = i,
 			Parent = container,
 		})
 		if on then
-			textOutline(2.5, C.ink).Parent = star
 			popIn(star, (i - 1) * 0.18)
 		end
 	end
@@ -1032,12 +1032,12 @@ function Ui.renderComplete()
 			Parent = refs.cList,
 		}, {
 			corner(10),
-			label({ Position = UDim2.fromOffset(10, 0), Size = UDim2.new(0, 30, 1, 0), Text = if on then "⭐" else "☆", TextSize = 22 }),
+			label({ Position = UDim2.fromOffset(10, 0), Size = UDim2.new(0, 30, 1, 0), Text = "⭐", TextSize = 22, TextTransparency = if on then 0 else 0.78 }),
 			label({ Position = UDim2.fromOffset(44, 0), Size = UDim2.new(1, -50, 1, 0), Text = t(key), TextSize = 17, TextTransparency = if on then 0 else 0.4 }),
 		})
 	end
 	refs.cPts.Text = t("points") .. ": " .. d.score
-	refs.cNextFace.Text = if d.q < #GameData.QUESTS then t("nextQ") .. " ▸" else t("finish")
+	refs.cNextFace.Text = if d.q < #GameData.QUESTS then t("nextQ") .. " ›" else t("finish")
 	return count
 end
 
@@ -1061,7 +1061,7 @@ local function buildFinal()
 	local dim, sheet = modalSheet("Final", 460)
 	refs.final = dim
 	face(120, sheet, 1)
-	refs.fTitle = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Font = DISPLAY, TextSize = 32, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 2, Parent = sheet })
+	refs.fTitle = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, FontFace = DISPLAY, TextSize = 32, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 2, Parent = sheet })
 	refs.fStars = frame({ Size = UDim2.new(1, 0, 0, 72), LayoutOrder = 3, Parent = sheet }, { hlist(8, Enum.HorizontalAlignment.Center) })
 	refs.fText = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 19, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 4, Parent = sheet })
 	local _, againFace = button({ size = UDim2.fromOffset(240, 58), textSize = 26, order = 5, parent = sheet, onClick = handlers.onAgain })
@@ -1098,7 +1098,7 @@ local function buildHelp()
 	end)
 	refs.help = dim
 	local head = frame({ Size = UDim2.new(1, 0, 0, 40), LayoutOrder = 1, Parent = sheet })
-	refs.hTitle = label({ Size = UDim2.new(1, -50, 1, 0), Font = DISPLAY, TextSize = 28, Parent = head })
+	refs.hTitle = label({ Size = UDim2.new(1, -50, 1, 0), FontFace = DISPLAY, TextSize = 28, Parent = head })
 	closeButton(head, function()
 		handlers.onCloseHelp()
 	end)
@@ -1161,7 +1161,7 @@ local function buildTitle()
 	for i, g in NS do
 		mini(g, 38, i).Parent = abc
 	end
-	refs.tName = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Font = DISPLAY, TextSize = 46, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 2, Parent = card })
+	refs.tName = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, FontFace = DISPLAY, TextSize = 46, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 2, Parent = card })
 	refs.tTag = label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 18, TextColor3 = C.muted, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 3, Parent = card })
 
 	local langs = frame({ Size = UDim2.fromOffset(0, 46), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 4, Parent = card }, { hlist(8) })
@@ -1188,7 +1188,7 @@ local function buildTitle()
 	refs.newBtn = make("TextButton", {
 		Size = UDim2.fromOffset(240, 26),
 		BackgroundTransparency = 1,
-		Font = BODY,
+		FontFace = BODY,
 		TextSize = 16,
 		TextColor3 = C.muted,
 		RichText = true,

@@ -2,7 +2,9 @@
 -- Sizes and offsets are in metres and get multiplied by Config.SCALE.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local Fonts = require(Shared:WaitForChild("Fonts"))
 
 local S = Config.SCALE
 local INK = Config.UI.ink
@@ -131,7 +133,7 @@ function Build.emojiFace(part, face, emoji)
 	label.BackgroundTransparency = 1
 	label.Text = emoji
 	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
+	label.FontFace = Fonts.body
 	label.Parent = bg
 	local aspect = Instance.new("UIAspectRatioConstraint")
 	aspect.Parent = label
@@ -159,7 +161,7 @@ function Build.signGui(part, face, color, emoji, text, textColor)
 		e.Size = UDim2.fromScale(0.18, 0.8)
 		e.Text = emoji
 		e.TextScaled = true
-		e.Font = Enum.Font.GothamBold
+		e.FontFace = Fonts.body
 		e.Parent = bg
 		left = 0.23
 	end
@@ -171,7 +173,7 @@ function Build.signGui(part, face, color, emoji, text, textColor)
 	name.Size = UDim2.fromScale(0.95 - left, 0.72)
 	name.Text = text
 	name.TextScaled = true
-	name.Font = Enum.Font.FredokaOne
+	name.FontFace = Fonts.display
 	name.TextColor3 = textColor or Color3.new(1, 1, 1)
 	name.TextXAlignment = if emoji then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center
 	name.Parent = bg
